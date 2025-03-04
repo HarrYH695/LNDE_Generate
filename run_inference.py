@@ -58,4 +58,4 @@ if __name__ == '__main__':
     # Run simulations.
     simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
 
-#python run_inference.py --experiment-name wo_cal_pc_1_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
+#python run_inference.py --experiment-name wo_cal_pc_3_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
