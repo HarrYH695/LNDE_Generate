@@ -1,5 +1,5 @@
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==1.9.1+cu111
+torch==2.1.0+cu118
 setuptools==59.5.0
 matplotlib==3.4.3
 numpy==1.21.2
