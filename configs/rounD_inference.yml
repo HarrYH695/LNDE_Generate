@@ -55,8 +55,8 @@ PET_configs: # This is pixel coordinates of the basemap image
 
 # Other save results and visualization
 save_simulated_TIME_BUFF_flag: False  # Save all generated simulated trajectories
-viz_flag: False  # Whether visualize the simulation.
-save_viz_flag: False  # Save simulation visualizations
+viz_flag: True  # Whether visualize the simulation.
+save_viz_flag: True  # Save simulation visualizations
 save_fps: 10
 
 # Data needed for the simulation. E.g., map image, initial vehicle states, etc.
