@@ -59,3 +59,4 @@ if __name__ == '__main__':
     simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
 
 #python run_inference.py --experiment-name wo_cal_pc_4_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
+# store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results
