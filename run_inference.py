@@ -34,7 +34,7 @@ if __name__ == '__main__':
     configs["device"] = torch.device("cuda:0" if configs["use_gpu"] else "cpu")
     print(f"Using device: {configs['device']}...")
     print(f"Simulating {configs['dataset']} using {configs['model']} model...")
-    print('Using conflict critic module!') if configs["use_conflict_critic_module"] else print('Not using conflict critic module!')
+    print('Using conflict critic module!') if configs["use_conflict_critic_module"] else print('Not using conflict critic module!') #True
     print(f'Using neural safety mapper!' if configs["use_neural_safety_mapping"] else 'Not using neural safety mapper!')
     assert (configs["rolling_step"] <= configs["pred_length"])
     configs["viz_flag"] = configs["viz_flag"] or args.viz_flag  # The visualization flag can be easily modified through input argument.
