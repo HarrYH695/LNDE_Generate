@@ -412,7 +412,42 @@ class SimulationInference(object):
                 break
 
         self.one_sim_wall_time = (tt + 1) * self.sim_resol * self.rolling_step
+    
+    def run_sim_steps_for_certain_TIME_BUFF(sim_num, result_dir, T=5, initial_TIME_BUFF=None): 
+        #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC 
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+        
+        #record the info of TIME_BUFF 
+        agent = {}
+        agent["num_nodes"]
+        agent["av_index"]
+        agent["valid_mask"]
+        agent["predict_mask"]
+        agent["id"]
+        agent["type"]
+        agent["category"]
+        agent["position"]
+        agent["heading"]
+        agent["velocity"]
+        agent["shape"]
 
+        safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
+
+        #run "sim_num" number of i.d. simulations of the TIME_BUFF 
+        future_states = np.zeros((sim_num, agent["num_nodes"], 3))
+        PoC_T = np.zeros((agent["num_nodes"], agent["num_nodes"]))
+
+        each_time_num = int(sim_num / T)
+        for i in each_time_num:
+            TIME_BUFF, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
+            TIME_BUFF = self.sim.label_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)
+            #detect if crash for every pair
+            
+
+        #record all the info above
+
+        return
+    
     def _visualize_time_buff(self, TIME_BUFF, background_map):
         for i in range(len(TIME_BUFF)):
             vehicle_list = TIME_BUFF[i]

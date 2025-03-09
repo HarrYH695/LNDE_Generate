@@ -227,6 +227,30 @@ class TrafficSimulator(object):
             TIME_BUFF_NEW.append(vehicle_list)
 
         return TIME_BUFF_NEW
+    
+    def label_out_of_bound_vehicles(self, TIME_BUFF, dataset=None):
+
+        kick_out_id_list = []
+        for i in range(len(TIME_BUFF)):
+            for j in range(len(TIME_BUFF[i])):
+                v = TIME_BUFF[i][j]
+                if not self.road_matcher._within_map(v.location.x, v.location.y):
+                    kick_out_id_list.append(v.id)
+                    continue
+
+                if self._within_exit_region(v.location.x, v.location.y, dataset=dataset):
+                    kick_out_id_list.append(v.id)
+
+        TIME_BUFF_NEW = []
+        for i in range(len(TIME_BUFF)):
+            vehicle_list = []
+            for j in range(len(TIME_BUFF[i])):
+                v = TIME_BUFF[i][j]
+                if v.id not in kick_out_id_list:
+                    vehicle_list.append(v)
+            TIME_BUFF_NEW.append(vehicle_list)
+
+        return TIME_BUFF_NEW
 
     def _within_exit_region(self, lat, lon, dataset=None):
         if dataset == 'rounD' or dataset == 'AA_rdbt':
