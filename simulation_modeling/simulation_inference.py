@@ -415,21 +415,31 @@ class SimulationInference(object):
     
     def run_sim_steps_for_certain_TIME_BUFF(sim_num, result_dir, T=5, initial_TIME_BUFF=None): 
         #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC 
-        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
+        tao = len(TIME_BUFF)
+        N = len(TIME_BUFF[-1])
+
+        Trajectory_info = {}
+        Trajectory_info["scenario_id"] = "42735107"
+        Trajectory_info["city"] = 1
+        Trajectory_info["map_id"] = "rounD"
         
         #record the info of TIME_BUFF 
         agent = {}
-        agent["num_nodes"]
-        agent["av_index"]
-        agent["valid_mask"]
-        agent["predict_mask"]
-        agent["id"]
-        agent["type"]
-        agent["category"]
-        agent["position"]
-        agent["heading"]
-        agent["velocity"]
-        agent["shape"]
+        agent["num_nodes"] = N
+        agent["av_index"] = 0
+        agent["valid_mask"] = np.ones((N, tao))
+        agent["predict_mask"] = np.ones((N, tao))
+        agent["id"] = np.arange(N)
+        agent["type"] = np.zeros(N)
+        agent["category"] = np.zeros(N)
+        agent["shape"] = np.array([3.6, 1.8, 1.5])
+
+        agent["position"] = np.zeros((N, tao, 3))
+        agent["heading"] = np.zeros((N, tao))
+        agent["velocity"] = np.zeros((N, tao))
+
+
 
         safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
 
