@@ -4,7 +4,7 @@ import os
 import yaml
 import warnings
 import shutil
-
+from tqdm import tqdm
 from simulation_modeling.simulation_inference import SimulationInference
 
 # settings
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_1_EachFuture_100/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
-    for idx in range(5):
+    for idx in tqdm(range(1000)):
         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(sim_num=100, result_dir=save_sim_path, num_idx=idx)
 
 #python run_inference.py --experiment-name wo_cal_pc_5_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
