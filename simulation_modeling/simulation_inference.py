@@ -484,13 +484,14 @@ class SimulationInference(object):
             #detect if crash for every pair
             #if i < each_time_num and i < each_time_num:
             for idx in range(N):
-                for jdx in range(N):
-                    if TIME_BUFF_new[-1][idx].confidence != False and TIME_BUFF_new[-1][jdx].confidence != False:
-                        v1_poly = TIME_BUFF_new[-1][idx].poly_box
-                        v2_poly = TIME_BUFF_new[-1][jdx].poly_box
-                        if v1_poly.intersects(v2_poly):
-                            PoC_T_tmp[idx, jdx] = 1
-                            PoC_T_tmp[jdx, idx] = 1
+                if TIME_BUFF_new[-1][idx].confidence != False:
+                    for jdx in range(N):
+                        if idx != jdx and TIME_BUFF_new[-1][jdx].confidence != False:
+                            v1_poly = TIME_BUFF_new[-1][idx].poly_box
+                            v2_poly = TIME_BUFF_new[-1][jdx].poly_box
+                            if v1_poly.intersects(v2_poly):
+                                PoC_T_tmp[idx, jdx] = 1
+                                PoC_T_tmp[jdx, idx] = 1
 
             if i >= each_time_num:
                 TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
@@ -498,7 +499,7 @@ class SimulationInference(object):
                 for idx in range(N):
                     if TIME_BUFF_new[-1][idx].confidence != False:
                         for jdx in range(N):
-                            if TIME_BUFF_new[-1][jdx].confidence != False:
+                            if idx != jdx and TIME_BUFF_new[-1][jdx].confidence != False:
                                 v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                 v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                 if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
@@ -510,7 +511,7 @@ class SimulationInference(object):
                     for idx in range(N):
                         if TIME_BUFF_new[-1][idx].confidence != False:
                             for jdx in range(N):
-                                if TIME_BUFF_new[-1][jdx].confidence != False:
+                                if idx != jdx and TIME_BUFF_new[-1][jdx].confidence != False:
                                     v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                     v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                     if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
@@ -522,7 +523,7 @@ class SimulationInference(object):
                         for idx in range(N):
                             if TIME_BUFF_new[-1][idx].confidence != False:
                                 for jdx in range(N):
-                                    if TIME_BUFF_new[-1][jdx].confidence != False:
+                                    if idx != jdx and TIME_BUFF_new[-1][jdx].confidence != False:
                                         v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                         v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                         if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
@@ -534,7 +535,7 @@ class SimulationInference(object):
                             for idx in range(N):
                                 if TIME_BUFF_new[-1][idx].confidence != False:
                                     for jdx in range(N):
-                                        if TIME_BUFF_new[-1][jdx].confidence != False:
+                                        if idx != jdx and TIME_BUFF_new[-1][jdx].confidence != False:
                                             v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                             v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                             if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
@@ -543,7 +544,9 @@ class SimulationInference(object):
             PoC_T = PoC_T + PoC_T_tmp
 
         print(f"max:{np.max(PoC_T)}, min:{np.min(PoC_T)}")
+        print(f"car_num:{N}, N**2={N**2}")
         print(f"no_conflict_num:{np.sum(PoC_T == 0)}")
+        print(f"no_conflict_rate:{(np.sum(PoC_T == 0) - N)/(N**2-N)}")
         PoC_T = PoC_T / sim_num
         
         #record all the info above

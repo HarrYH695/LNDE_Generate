@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    for idx in range(5):
+    for idx in range(10):
         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(sim_num=100, result_dir="", num_idx=idx)
 
 #python run_inference.py --experiment-name wo_cal_pc_5_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
