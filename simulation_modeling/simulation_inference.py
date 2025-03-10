@@ -465,7 +465,9 @@ class SimulationInference(object):
                     agent["velocity"][i, t] = (np.sqrt((TIME_BUFF[t][i].location.x - TIME_BUFF[t+1][i].location.x)**2 + (TIME_BUFF[t][i].location.y - TIME_BUFF[t+1][i].location.y)**2))/0.4
 
         safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
-
+        Trajectory_info["agent"] = agent
+        Trajectory_info["safety_flag"] = safety_flag
+        
         #run "sim_num" number of i.d. simulations of the TIME_BUFF 
         future_states = np.zeros((sim_num, agent["num_nodes"], 3))
         PoC_T = np.zeros((agent["num_nodes"], agent["num_nodes"]))
@@ -543,14 +545,17 @@ class SimulationInference(object):
                                                 PoC_T_tmp[jdx, idx] = 1
             PoC_T = PoC_T + PoC_T_tmp
 
-        print(f"max:{np.max(PoC_T)}, min:{np.min(PoC_T)}")
-        print(f"car_num:{N}, N**2={N**2}")
-        print(f"no_conflict_num:{np.sum(PoC_T == 0)}")
-        print(f"no_conflict_rate:{(np.sum(PoC_T == 0) - N)/(N**2-N)}")
+        # print(f"max:{np.max(PoC_T)}, min:{np.min(PoC_T)}")
+        # print(f"car_num:{N}, N**2={N**2}")
+        # print(f"no_conflict_num:{np.sum(PoC_T == 0)}")
+        # print(f"no_conflict_rate:{(np.sum(PoC_T == 0) - N)/(N**2-N)}")
         PoC_T = PoC_T / sim_num
-        
+        Trajectory_info["future_states"] = future_states
+        Trajectory_info["PoC_T"] = PoC_T
         #record all the info above
 
+        with open(result_dir + f"{num_idx}.pkl", "wb") as f:
+            pickle.dump(Trajectory_info, f)
         
     
     def _visualize_time_buff(self, TIME_BUFF, background_map):
