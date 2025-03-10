@@ -496,50 +496,55 @@ class SimulationInference(object):
                 TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
                 TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
                 for idx in range(N):
-                    for jdx in range(N):
-                        if TIME_BUFF_new[-1][idx].confidence != False and TIME_BUFF_new[-1][jdx].confidence != False:
-                            v1_poly = TIME_BUFF_new[-1][idx].poly_box
-                            v2_poly = TIME_BUFF_new[-1][jdx].poly_box
-                            if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
-                                PoC_T_tmp[idx, jdx] = 1
-                                PoC_T_tmp[jdx, idx] = 1
-                if i>= each_time_num*2:
-                    TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
-                    TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
-                    for idx in range(N):
+                    if TIME_BUFF_new[-1][idx].confidence != False:
                         for jdx in range(N):
-                            if TIME_BUFF_new[-1][idx].confidence != False and TIME_BUFF_new[-1][jdx].confidence != False:
+                            if TIME_BUFF_new[-1][jdx].confidence != False:
                                 v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                 v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                 if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
                                     PoC_T_tmp[idx, jdx] = 1
                                     PoC_T_tmp[jdx, idx] = 1
-                    if i >= each_time_num*3:
-                        TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
-                        TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
-                        for idx in range(N):
+                if i>= each_time_num*2:
+                    TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
+                    TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
+                    for idx in range(N):
+                        if TIME_BUFF_new[-1][idx].confidence != False:
                             for jdx in range(N):
-                                if TIME_BUFF_new[-1][idx].confidence != False and TIME_BUFF_new[-1][jdx].confidence != False:
+                                if TIME_BUFF_new[-1][jdx].confidence != False:
                                     v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                     v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                     if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
                                         PoC_T_tmp[idx, jdx] = 1
                                         PoC_T_tmp[jdx, idx] = 1
-                        if i >= each_time_num*4:
-                            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
-                            TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
-                            for idx in range(N):
+                    if i >= each_time_num*3:
+                        TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
+                        TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
+                        for idx in range(N):
+                            if TIME_BUFF_new[-1][idx].confidence != False:
                                 for jdx in range(N):
-                                    if TIME_BUFF_new[-1][idx].confidence != False and TIME_BUFF_new[-1][jdx].confidence != False:
+                                    if TIME_BUFF_new[-1][jdx].confidence != False:
                                         v1_poly = TIME_BUFF_new[-1][idx].poly_box
                                         v2_poly = TIME_BUFF_new[-1][jdx].poly_box
                                         if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
                                             PoC_T_tmp[idx, jdx] = 1
                                             PoC_T_tmp[jdx, idx] = 1
+                        if i >= each_time_num*4:
+                            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
+                            TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
+                            for idx in range(N):
+                                if TIME_BUFF_new[-1][idx].confidence != False:
+                                    for jdx in range(N):
+                                        if TIME_BUFF_new[-1][jdx].confidence != False:
+                                            v1_poly = TIME_BUFF_new[-1][idx].poly_box
+                                            v2_poly = TIME_BUFF_new[-1][jdx].poly_box
+                                            if v1_poly.intersects(v2_poly) and PoC_T_tmp[idx, jdx] == 0:
+                                                PoC_T_tmp[idx, jdx] = 1
+                                                PoC_T_tmp[jdx, idx] = 1
             PoC_T = PoC_T + PoC_T_tmp
 
-        PoC_T = PoC_T / sim_num
         print(f"max:{np.max(PoC_T)}, min:{np.min(PoC_T)}")
+        print(f"no_conflict_num:{np.sum(PoC_T == 0)}")
+        PoC_T = PoC_T / sim_num
         
         #record all the info above
 
