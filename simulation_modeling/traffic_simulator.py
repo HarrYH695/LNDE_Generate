@@ -187,6 +187,7 @@ class TrafficSimulator(object):
                 v.safe_size = self.v_modeling_safe_size
                 v.update_poly_box_and_realworld_4_vertices()
                 v.update_safe_poly_box()
+                v.confidence = True
 
                 vehicle_list.append(v)
 
@@ -246,8 +247,10 @@ class TrafficSimulator(object):
             vehicle_list = []
             for j in range(len(TIME_BUFF[i])):
                 v = TIME_BUFF[i][j]
-                if v.id not in kick_out_id_list:
-                    vehicle_list.append(v)
+                if v.id in kick_out_id_list:
+                    v.confidence = False
+
+                vehicle_list.append(v)
             TIME_BUFF_NEW.append(vehicle_list)
 
         return TIME_BUFF_NEW

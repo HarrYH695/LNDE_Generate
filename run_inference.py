@@ -56,7 +56,8 @@ if __name__ == '__main__':
     simulation_inference_model = SimulationInference(configs=configs)
 
     # Run simulations.
-    simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
+    #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
+    simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(sim_num=100, result_dir="")
 
-#python run_inference.py --experiment-name wo_cal_pc_4_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
+#python run_inference.py --experiment-name wo_cal_pc_5_vis --folder-idx 1 --config ./configs/rounD_inference.yml --viz-flag
 # store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results

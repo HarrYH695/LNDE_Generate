@@ -160,6 +160,9 @@ class SimulationInference(object):
         # print("start idx: {0}".format(str(t0 - history_length)))
         for i in range(idx - self.history_length, idx):
             vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
+            for j in vehicle_list:
+                j.confidence = True
+
             TIME_BUFF.append(vehicle_list)
 
         return TIME_BUFF
@@ -293,7 +296,7 @@ class SimulationInference(object):
         initial_has_collision = True
         while initial_has_collision:
             TIME_BUFF = self._initialize_sim() if initial_TIME_BUFF is None else initial_TIME_BUFF
-            TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)  # remove initial vehicles in exit area.
+            TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)  # remove initial vehicles in exit area.    
             traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF)
             initial_has_collision = self.sim.collision_check(TIME_BUFF)
             if initial_has_collision and initial_TIME_BUFF is not None:
@@ -413,11 +416,23 @@ class SimulationInference(object):
 
         self.one_sim_wall_time = (tt + 1) * self.sim_resol * self.rolling_step
     
-    def run_sim_steps_for_certain_TIME_BUFF(sim_num, result_dir, T=5, initial_TIME_BUFF=None): 
-        #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC 
-        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
+    def run_sim_steps_for_certain_TIME_BUFF(self, sim_num, result_dir, T=5, initial_TIME_BUFF=None): 
+        #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC
+        car_num_ineq = True
+        while car_num_ineq: 
+            TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
+            tao = len(TIME_BUFF)
+            car_nums_per_t = np.array([len(TIME_BUFF[i]) for i in range(tao)])
+            if np.all(car_nums_per_t == car_nums_per_t[0]):
+                if car_nums_per_t[0] >= 2:
+                    car_num_ineq = False
+
         tao = len(TIME_BUFF)
         N = len(TIME_BUFF[-1])
+        # for t in range(tao):
+        #     print(f"Time_step:{t}")
+        #     car_ids = np.array([TIME_BUFF[t][i].id for i in range(N)])
+        #     print(car_ids)
 
         Trajectory_info = {}
         Trajectory_info["scenario_id"] = "42735107"
@@ -439,7 +454,15 @@ class SimulationInference(object):
         agent["heading"] = np.zeros((N, tao))
         agent["velocity"] = np.zeros((N, tao))
 
-
+        for t in range(tao):
+            for i in range(N):
+                v = TIME_BUFF[t][i]
+                agent["position"][i, t, :] = np.array([v.location.x, v.location.y, v.location.z])
+                agent["heading"][i, t] = v.speed_heading
+                if t > 0:
+                    agent["velocity"][i, t] = (np.sqrt((TIME_BUFF[t][i].location.x - TIME_BUFF[t-1][i].location.x)**2 + (TIME_BUFF[t][i].location.y - TIME_BUFF[t-1][i].location.y)**2))/0.4
+                else:
+                    agent["velocity"][i, t] = (np.sqrt((TIME_BUFF[t][i].location.x - TIME_BUFF[t+1][i].location.x)**2 + (TIME_BUFF[t][i].location.y - TIME_BUFF[t+1][i].location.y)**2))/0.4
 
         safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
 
@@ -448,9 +471,10 @@ class SimulationInference(object):
         PoC_T = np.zeros((agent["num_nodes"], agent["num_nodes"]))
 
         each_time_num = int(sim_num / T)
-        for i in each_time_num:
-            TIME_BUFF, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
-            TIME_BUFF = self.sim.label_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)
+
+        for i in range(1):
+            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
+            TIME_BUFF_new = self.sim.label_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
             #detect if crash for every pair
             
 
