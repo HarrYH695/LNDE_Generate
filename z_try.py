@@ -16,3 +16,7 @@ import time
 #     loaded_data = pickle.load(f)
     
 # print(loaded_data)
+
+def f():
+    return True
+print(not f())

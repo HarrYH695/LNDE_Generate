@@ -292,15 +292,26 @@ class SimulationInference(object):
         """
         Initialize a simulation episode by sampling from trajectory clips or given TIME_BUFF.
         """
-        # read frames and initialize trajectory pool
+        # read frames and initialize trajectory pool. 
         initial_has_collision = True
         while initial_has_collision:
             TIME_BUFF = self._initialize_sim() if initial_TIME_BUFF is None else initial_TIME_BUFF
             TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)  # remove initial vehicles in exit area.    
             traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF)
             initial_has_collision = self.sim.collision_check(TIME_BUFF)
+            
             if initial_has_collision and initial_TIME_BUFF is not None:
                 raise ValueError("The given initial TIME BUFF is not safe, collision in it!")
+
+        # initial_no_collision = True
+        # while initial_no_collision:
+        # TIME_BUFF = self._initialize_sim() if initial_TIME_BUFF is None else initial_TIME_BUFF
+        # TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)  # remove initial vehicles in exit area.    
+        # traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF)
+            # initial_no_collision = not self.sim.collision_check(TIME_BUFF)
+            # print(initial_no_collision)
+            # if initial_has_collision and initial_TIME_BUFF is not None:
+            #     raise ValueError("The given initial TIME BUFF is not safe, collision in it!")
 
         # Initialize some basic stats for this simulation episode
         self.one_sim_TIME_BUFF = TIME_BUFF
@@ -423,12 +434,14 @@ class SimulationInference(object):
             TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
             tao = len(TIME_BUFF)
             car_nums_per_t = np.array([len(TIME_BUFF[i]) for i in range(tao)])
+            print(car_nums_per_t)
             if np.all(car_nums_per_t == car_nums_per_t[0]):
-                if car_nums_per_t[0] >= 2:
+                if car_nums_per_t[0] >= 3:
                     car_num_ineq = False
 
         tao = len(TIME_BUFF)
         N = len(TIME_BUFF[-1])
+
         # for t in range(tao):
         #     print(f"Time_step:{t}")
         #     car_ids = np.array([TIME_BUFF[t][i].id for i in range(N)])
@@ -464,9 +477,8 @@ class SimulationInference(object):
                 else:
                     agent["velocity"][i, t] = (np.sqrt((TIME_BUFF[t][i].location.x - TIME_BUFF[t+1][i].location.x)**2 + (TIME_BUFF[t][i].location.y - TIME_BUFF[t+1][i].location.y)**2))/0.4
 
-        safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
+        
         Trajectory_info["agent"] = agent
-        Trajectory_info["safety_flag"] = safety_flag
         
         #run "sim_num" number of i.d. simulations of the TIME_BUFF 
         future_states = np.zeros((sim_num, agent["num_nodes"], 3))
@@ -549,11 +561,26 @@ class SimulationInference(object):
         # print(f"car_num:{N}, N**2={N**2}")
         # print(f"no_conflict_num:{np.sum(PoC_T == 0)}")
         # print(f"no_conflict_rate:{(np.sum(PoC_T == 0) - N)/(N**2-N)}")
+        safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
+        for i in range(N):
+            for j in range(N):
+                if i == j or PoC_T[i, j] == 0:
+                    safety_flag[i, j] = 0
+                    safety_flag[j, i] = 0
+                elif PoC_T[i, j] == sim_num:
+                    safety_flag[i, j] = 1
+                    safety_flag[j, i] = 1
+                else:
+                    safety_flag[i, j] = 2
+                    safety_flag[j, i] = 2
+                
+        Trajectory_info["safety_flag"] = safety_flag
+
         PoC_T = PoC_T / sim_num
         Trajectory_info["future_states"] = future_states
         Trajectory_info["PoC_T"] = PoC_T
-        #record all the info above
 
+        #record all the info above
         with open(result_dir + f"{num_idx}.pkl", "wb") as f:
             pickle.dump(Trajectory_info, f)
         

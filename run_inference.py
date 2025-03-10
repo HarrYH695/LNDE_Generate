@@ -57,10 +57,10 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_1_EachFuture_100/"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_2_EachFuture_100/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
-    for idx in tqdm(range(1000,2000)):
+    for idx in range(100):#tqdm(range(1000)):
         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(sim_num=100, result_dir=save_sim_path, num_idx=idx)
 
 #python run_inference.py --experiment-name wo_cal_pc_6_vis --folder-idx 2 --config ./configs/rounD_inference.yml --viz-flag

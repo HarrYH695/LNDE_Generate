@@ -96,8 +96,9 @@ class CrashCritic(object):
         self.sim_resol = sim_resol  # simulation resolution in [s]
         # Acceptance probability of different crash type. Calibrated for AA_rdbt.
         # There is no data to calibrate for the rounD dataset, so we use the same probability as AA_rdbt.
-        self.type_prob = {'rear_end': 4.775061124694377e-05, 'angle': 0.0028623333333333335,
-                          'sideswipe': 0.0008131147540983608, 'other': 0.0, 'more_than_two_vehicles': 0.0}
+        # self.type_prob = {'rear_end': 4.775061124694377e-05, 'angle': 0.0028623333333333335,
+        #                   'sideswipe': 0.0008131147540983608, 'other': 0.0, 'more_than_two_vehicles': 0.0}
+        self.type_prob = {'rear_end': 1, 'angle': 1, 'sideswipe': 1, 'other': 0.0, 'more_than_two_vehicles': 0.0}
 
     @staticmethod
     def collision_check(vehicle_list, extra_buffer=False):
