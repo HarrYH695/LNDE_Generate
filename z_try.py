@@ -17,6 +17,5 @@ import time
     
 # print(loaded_data)
 
-def f():
-    return True
-print(not f())
+a = [1,2,3,4,5]
+print(a[:1])

@@ -434,7 +434,6 @@ class SimulationInference(object):
             TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
             tao = len(TIME_BUFF)
             car_nums_per_t = np.array([len(TIME_BUFF[i]) for i in range(tao)])
-            print(car_nums_per_t)
             if np.all(car_nums_per_t == car_nums_per_t[0]):
                 if car_nums_per_t[0] >= 3:
                     car_num_ineq = False
@@ -583,6 +582,37 @@ class SimulationInference(object):
         #record all the info above
         with open(result_dir + f"{num_idx}.pkl", "wb") as f:
             pickle.dump(Trajectory_info, f)
+    
+    def check_crash_samples(self, max_time, result_dir, num_idx, initial_TIME_BUFF=None):
+        #sample from history traj, then simulate for a long time until get a crash.
+        #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
+        #if find proper samples, save the whole traj.
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+        print(len(TIME_BUFF))
+        print([TIME_BUFF[-1][i].id for i in range(TIME_BUFF[-1])])
+
+        for i in range(max_time):
+            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
+            TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
+            TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
+            traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
+            self.one_sim_TIME_BUFF += TIME_BUFF_new[-self.rolling_step:]
+            self.update_basic_stats_of_the_current_sim_episode(sim_step, TIME_BUFF_new, pred_vid)
+            self.one_sim_colli_flag = self.sim.collision_check(self.one_sim_TIME_BUFF_newly_generated)
+
+            if self.one_sim_colli_flag:
+                infos = {}
+                infos["inference_step"] = i + 1
+                infos["inital_state"] = TIME_BUFF
+                infos["whole_inference_states"] = self.one_sim_TIME_BUFF
+                with open(result_dir + f"{num_idx}.pkl", "wb") as f:
+                    pickle.dump(infos, f)
+
+                return 1
+
+        return 0
+
+
         
     
     def _visualize_time_buff(self, TIME_BUFF, background_map):

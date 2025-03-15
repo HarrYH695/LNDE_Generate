@@ -57,11 +57,14 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_2_EachFuture_100/"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_3/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
-    for idx in range(100):#tqdm(range(1000)):
-        simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(sim_num=100, result_dir=save_sim_path, num_idx=idx)
+    coll_num = 0
+    for idx in tqdm(range(3000)):
+        coll = simulation_inference_model.check_crash_samples(max_time=400, result_dir=save_sim_path, num_idx=idx)
+        coll_num += coll
+    print(f"Find collision num: {coll_num}")
 
 #python run_inference.py --experiment-name wo_cal_pc_6_vis --folder-idx 2 --config ./configs/rounD_inference.yml --viz-flag
 # store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results
