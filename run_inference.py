@@ -58,12 +58,12 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_5/2/"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/2/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
     coll_num = 0
-    for idx in range(20):
-        print(f"----------------{idx}----------------")
+    for idx in tqdm(range(1000)):
+        #print(f"----------------{idx}----------------")
         coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
         coll_num += coll
     print(f"Find collision num: {coll_num}")

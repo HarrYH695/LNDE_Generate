@@ -622,21 +622,22 @@ class SimulationInference(object):
                 #infos["inital_state"] = TIME_BUFF
                 #infos["whole_inference_states"] = self.one_sim_TIME_BUFF
                 #save the time_buffs which contain crash pairs
-                print(crash_pair)
-                time_buff_t = self.one_sim_TIME_BUFF[-1]
-                print([int(time_buff_t[p].id) for p in range(len(time_buff_t))])
-                print([int(self.one_sim_TIME_BUFF_newly_generated[-1][p].id) for p in range(len(time_buff_t))])
+                #print(crash_pair)
+                # time_buff_t = self.one_sim_TIME_BUFF[-1]
+                # print([int(time_buff_t[p].id) for p in range(len(time_buff_t))])
+                # print([int(self.one_sim_TIME_BUFF_newly_generated[-1][p].id) for p in range(len(time_buff_t))])
                 states_to_be_considered = []
                 for k in range(len(self.one_sim_TIME_BUFF)):
-                    time_buff_t = self.one_sim_TIME_BUFF[-1-i]
+                    time_buff_t = self.one_sim_TIME_BUFF[-1-k]
                     vids_t = [int(time_buff_t[p].id) for p in range(len(time_buff_t))]
-                    print(vids_t)
+                    # print(vids_t)
                     if crash_pair[0] in vids_t and crash_pair[1] in vids_t:
                         states_to_be_considered.append(time_buff_t)
-                print(len(states_to_be_considered))
+                #print(len(states_to_be_considered))
+
                 if len(states_to_be_considered) >= 6:
                     infos = {}
-                    infos["whole_inference_states"] = self.one_sim_TIME_BUFF
+                    #infos["whole_inference_states"] = self.one_sim_TIME_BUFF
                     infos["states_considered"] = states_to_be_considered[::-1]
 
                     with open(result_dir + f"{num_idx}.pkl", "wb") as f:
