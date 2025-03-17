@@ -21,7 +21,7 @@ gen_realistic_metric_dict:  # What metrics to generate.
 # The parameters below are determined by your trained model
 model: "transformer"
 dataset: "rounD"
-history_length: 6  # number of historical steps input to the model
+history_length: 5  # number of historical steps input to the model
 pred_length: 5  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
 

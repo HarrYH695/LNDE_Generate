@@ -8,7 +8,7 @@ import torch
 import json
 import pandas as pd
 import time
-
+import copy
 from simulation_modeling.traffic_simulator import TrafficSimulator
 from simulation_modeling.crashcritic import CrashCritic
 from simulation_modeling.trajectory_interpolator import TrajInterpolator
@@ -364,9 +364,9 @@ class SimulationInference(object):
             else:
                 print('Generate a collision!')
 
-        TIME_BUFF = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
+        TIME_BUFF_new = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
 
-        return TIME_BUFF, pred_vid, output_delta_position_mask
+        return TIME_BUFF_new, pred_vid, output_delta_position_mask
 
     def update_basic_stats_of_the_current_sim_episode(self, tt, TIME_BUFF, pred_vid):
         if tt == 0:
@@ -426,19 +426,23 @@ class SimulationInference(object):
                 break
 
         self.one_sim_wall_time = (tt + 1) * self.sim_resol * self.rolling_step
-    
-    def run_sim_steps_for_certain_TIME_BUFF(self, sim_num, result_dir, num_idx, T=5, initial_TIME_BUFF=None): 
-        #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC
-        car_num_ineq = True
-        while car_num_ineq: 
-            TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
-            tao = len(TIME_BUFF)
-            car_nums_per_t = np.array([len(TIME_BUFF[i]) for i in range(tao)])
-            if np.all(car_nums_per_t == car_nums_per_t[0]):
-                if car_nums_per_t[0] >= 3:
-                    car_num_ineq = False
 
-        tao = len(TIME_BUFF)
+    def run_sim_steps_for_certain_TIME_BUFF(self, time_buff, sim_num, result_dir, num_idx, T=5): 
+        #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC
+        # car_num_ineq = True
+        # while car_num_ineq: 
+        #     TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF) #TIME_BUFF: [history_length, N]
+        #     tao = len(TIME_BUFF)
+        #     car_nums_per_t = np.array([len(TIME_BUFF[i]) for i in range(tao)])
+        #     if np.all(car_nums_per_t == car_nums_per_t[0]):
+        #         if car_nums_per_t[0] >= 3:
+        #             car_num_ineq = False
+
+        tao = len(time_buff)
+        vid_all = []
+        for i in range(tao):
+            for j in range(len(time_buff[i])):
+                vid_all.append()
         N = len(TIME_BUFF[-1])
 
         # for t in range(tao):
@@ -464,7 +468,7 @@ class SimulationInference(object):
 
         agent["position"] = np.zeros((N, tao, 3))
         agent["heading"] = np.zeros((N, tao))
-        agent["velocity"] = np.zeros((N, tao))
+        agent["velocity"] = np.zeros((N, tao, 3))
 
         for t in range(tao):
             for i in range(N):
@@ -588,16 +592,14 @@ class SimulationInference(object):
         #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
         #if find proper samples, save the whole traj.
         TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
-        print(len(TIME_BUFF))
-        print([TIME_BUFF[-1][i].id for i in range(TIME_BUFF[-1])])
-
+        TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
         for i in range(max_time):
-            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
+            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF_new)
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
             TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
             traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
             self.one_sim_TIME_BUFF += TIME_BUFF_new[-self.rolling_step:]
-            self.update_basic_stats_of_the_current_sim_episode(sim_step, TIME_BUFF_new, pred_vid)
+            self.update_basic_stats_of_the_current_sim_episode(i, TIME_BUFF_new, pred_vid)
             self.one_sim_colli_flag = self.sim.collision_check(self.one_sim_TIME_BUFF_newly_generated)
 
             if self.one_sim_colli_flag:
@@ -612,7 +614,8 @@ class SimulationInference(object):
 
         return 0
 
-
+    def save_check_sample_result(self, time_buff, idx, save_path):
+        self.save_time_buff_video(TIME_BUFF=time_buff, background_map=self.background_map, file_name=idx, save_path=save_path)
         
     
     def _visualize_time_buff(self, TIME_BUFF, background_map):

@@ -6,6 +6,7 @@ import warnings
 import shutil
 from tqdm import tqdm
 from simulation_modeling.simulation_inference import SimulationInference
+import pickle
 
 # settings
 parser = argparse.ArgumentParser()
@@ -57,14 +58,31 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_3/"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_5/"
+    # if not os.path.exists(save_sim_path):
+    #     os.makedirs(save_sim_path)
+    # coll_num = 0
+    # for idx in tqdm(range(1600, 2000)):
+    #     coll = simulation_inference_model.check_crash_samples(max_time=800, result_dir=save_sim_path, num_idx=idx)
+    #     coll_num += coll
+    # print(f"Find collision num: {coll_num}")
+
+    #Get the visual of 1000 results
+    save_path = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_Crashes/1/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
-    coll_num = 0
-    for idx in tqdm(range(3000)):
-        coll = simulation_inference_model.check_crash_samples(max_time=400, result_dir=save_sim_path, num_idx=idx)
-        coll_num += coll
-    print(f"Find collision num: {coll_num}")
 
-#python run_inference.py --experiment-name wo_cal_pc_6_vis --folder-idx 2 --config ./configs/rounD_inference.yml --viz-flag
+    for i in tqdm(range(2000)):
+        if os.path.exists(save_sim_path + f"{i}.pkl"):
+            with open(save_sim_path + f"{i}.pkl", "rb") as f:
+                infos = pickle.load(f)
+                #time_buff = infos["inital_state"]
+                t_new = infos["whole_inference_states"]
+                # print(len(time_buff))
+                # print(len(t_new))
+                # print("------------------------")
+                simulation_inference_model.save_check_sample_result(time_buff=t_new, idx=i, save_path=save_path)
+    
+
+#python run_inference.py --experiment-name wo_cal_pc_7_vis --folder-idx 3 --config ./configs/rounD_inference.yml --viz-flag
 # store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results
