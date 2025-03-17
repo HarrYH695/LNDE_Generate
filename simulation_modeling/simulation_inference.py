@@ -298,7 +298,7 @@ class SimulationInference(object):
             TIME_BUFF = self._initialize_sim() if initial_TIME_BUFF is None else initial_TIME_BUFF
             TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)  # remove initial vehicles in exit area.    
             traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF)
-            initial_has_collision = self.sim.collision_check(TIME_BUFF)
+            initial_has_collision,_ = self.sim.collision_check(TIME_BUFF)
             
             if initial_has_collision and initial_TIME_BUFF is not None:
                 raise ValueError("The given initial TIME BUFF is not safe, collision in it!")
@@ -438,12 +438,15 @@ class SimulationInference(object):
         #         if car_nums_per_t[0] >= 3:
         #             car_num_ineq = False
 
-        tao = len(time_buff)
+        tao = len(time_buff) #mention that tao = 6
         vid_all = []
         for i in range(tao):
             for j in range(len(time_buff[i])):
-                vid_all.append()
-        N = len(TIME_BUFF[-1])
+                vid = int(time_buff[i][j].id)
+                if vid not in vid_all:
+                    vid_all.append(int(time_buff[i][j].id))
+        vid_all = sorted(vid_all)
+        N = len(vid_all)
 
         # for t in range(tao):
         #     print(f"Time_step:{t}")
@@ -451,7 +454,7 @@ class SimulationInference(object):
         #     print(car_ids)
 
         Trajectory_info = {}
-        Trajectory_info["scenario_id"] = "42735107"
+        Trajectory_info["scenario_id"] = "42735108"
         Trajectory_info["city"] = 1
         Trajectory_info["map_id"] = "rounD"
         
@@ -459,7 +462,6 @@ class SimulationInference(object):
         agent = {}
         agent["num_nodes"] = N
         agent["av_index"] = 0
-        agent["valid_mask"] = np.ones((N, tao))
         agent["predict_mask"] = np.ones((N, tao))
         agent["id"] = np.arange(N)
         agent["type"] = np.zeros(N)
@@ -469,6 +471,7 @@ class SimulationInference(object):
         agent["position"] = np.zeros((N, tao, 3))
         agent["heading"] = np.zeros((N, tao))
         agent["velocity"] = np.zeros((N, tao, 3))
+        agent["valid_mask"] = np.zeros((N, tao))
 
         for t in range(tao):
             for i in range(N):
@@ -480,7 +483,19 @@ class SimulationInference(object):
                 else:
                     agent["velocity"][i, t] = (np.sqrt((TIME_BUFF[t][i].location.x - TIME_BUFF[t+1][i].location.x)**2 + (TIME_BUFF[t][i].location.y - TIME_BUFF[t+1][i].location.y)**2))/0.4
 
-        
+        for t in range(tao):
+            cars_t = time_buff[t]
+            for car in cars_t:
+                car_id = car.id
+                j = vid.index(car_id)
+                agent["position"][j, t, :] = np.array([car.location.x, car.location.y, car.location.z])
+                agent["heading"][j, t] = car.speed_heading
+                agent["valid_mask"][j, t] = 1
+
+
+
+
+
         Trajectory_info["agent"] = agent
         
         #run "sim_num" number of i.d. simulations of the TIME_BUFF 
@@ -600,17 +615,36 @@ class SimulationInference(object):
             traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
             self.one_sim_TIME_BUFF += TIME_BUFF_new[-self.rolling_step:]
             self.update_basic_stats_of_the_current_sim_episode(i, TIME_BUFF_new, pred_vid)
-            self.one_sim_colli_flag = self.sim.collision_check(self.one_sim_TIME_BUFF_newly_generated)
+            self.one_sim_colli_flag, crash_pair = self.sim.collision_check(self.one_sim_TIME_BUFF_newly_generated)
 
             if self.one_sim_colli_flag:
-                infos = {}
-                infos["inference_step"] = i + 1
-                infos["inital_state"] = TIME_BUFF
-                infos["whole_inference_states"] = self.one_sim_TIME_BUFF
-                with open(result_dir + f"{num_idx}.pkl", "wb") as f:
-                    pickle.dump(infos, f)
+                #infos["inference_step"] = i + 1
+                #infos["inital_state"] = TIME_BUFF
+                #infos["whole_inference_states"] = self.one_sim_TIME_BUFF
+                #save the time_buffs which contain crash pairs
+                print(crash_pair)
+                time_buff_t = self.one_sim_TIME_BUFF[-1]
+                print([int(time_buff_t[p].id) for p in range(len(time_buff_t))])
+                print([int(self.one_sim_TIME_BUFF_newly_generated[-1][p].id) for p in range(len(time_buff_t))])
+                states_to_be_considered = []
+                for k in range(len(self.one_sim_TIME_BUFF)):
+                    time_buff_t = self.one_sim_TIME_BUFF[-1-i]
+                    vids_t = [int(time_buff_t[p].id) for p in range(len(time_buff_t))]
+                    print(vids_t)
+                    if crash_pair[0] in vids_t and crash_pair[1] in vids_t:
+                        states_to_be_considered.append(time_buff_t)
+                print(len(states_to_be_considered))
+                if len(states_to_be_considered) >= 6:
+                    infos = {}
+                    infos["whole_inference_states"] = self.one_sim_TIME_BUFF
+                    infos["states_considered"] = states_to_be_considered[::-1]
 
-                return 1
+                    with open(result_dir + f"{num_idx}.pkl", "wb") as f:
+                        pickle.dump(infos, f)
+
+                    return 1
+                else:
+                    return 0        
 
         return 0
 

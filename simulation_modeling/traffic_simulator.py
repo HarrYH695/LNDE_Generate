@@ -272,7 +272,7 @@ class TrafficSimulator(object):
         Check whether collision happens
         """
         collision_flag = False
-
+        crash_pair = np.zeros(2)
         for vehicle_list in TIME_BUFF:
             for vehicle_pair in combinations(vehicle_list, r=2):
                 v1, v2 = vehicle_pair[0], vehicle_pair[1]
@@ -283,8 +283,10 @@ class TrafficSimulator(object):
 
                 if v1_poly.intersects(v2_poly):
                     collision_flag = True
+                    crash_pair[0] = int(v1.id)
+                    crash_pair[1] = int(v2.id)
                     break
             if collision_flag:
                 break
 
-        return collision_flag
+        return collision_flag, crash_pair

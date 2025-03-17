@@ -17,5 +17,9 @@ import time
     
 # print(loaded_data)
 
-a = [1,2,3,4,5]
-print(a[:1])
+a = [1,2,3,4,5,0,10,9,22,6]
+print(a)
+a.append(-1)
+print(a)
+a.append(0)
+print(a)
