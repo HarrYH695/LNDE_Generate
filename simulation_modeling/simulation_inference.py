@@ -490,8 +490,11 @@ class SimulationInference(object):
                 car_id = car.id
                 j = vid_all.index(car_id)
                 agent["position"][j, t, :] = np.array([car.location.x, car.location.y, 0])
-                agent["heading"][j, t] = car.speed_heading
                 agent["valid_mask"][j, t] = 1
+                if car.speed_heading <= 180:
+                    agent["heading"][j, t] = car.speed_heading * np.pi / 180
+                else:
+                    agent["heading"][j, t] = (car.speed_heading - 360) * np.pi / 180
 
         for t in range(tao):
             cars_t = time_buff[t]
