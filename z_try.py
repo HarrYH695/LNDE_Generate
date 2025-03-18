@@ -18,8 +18,15 @@ import time
 # print(loaded_data)
 
 a = [1,2,3,4,5,0,10,9,22,6]
-print(a)
-a.append(-1)
-print(a)
-a.append(0)
-print(a)
+print(a[1:7])
+# a.append(-1)
+# print(a)
+# a.append(0)
+# print(a)
+
+
+#data['agent']['valid_mask'] = torch.tensor(data['agent']['valid_mask'], dtype=torch.bool)
+#data['agent']['position'] = torch.tensor(data['agent']['position'], dtype=torch.float32)
+#data['agent']['heading'] = torch.tensor(data['agent']['heading'], dtype=torch.float32)
+#data['agent']['heading'] = torch.where(data['agent']['heading'] > torch.pi, data['agent']['heading'] - 2 * torch.pi, data['agent']['heading'])
+#data['agent']['velocity'] = torch.tensor(velocity_3d, dtype=torch.float32)
