@@ -487,7 +487,7 @@ class SimulationInference(object):
         for t in range(tao):
             cars_t = time_buff[t]
             for car in cars_t:
-                car_id = car.id
+                car_id = int(car.id)
                 j = vid_all.index(car_id)
                 agent["position"][j, t, :] = np.array([car.location.x, car.location.y, 0])
                 agent["valid_mask"][j, t] = 1
@@ -499,7 +499,7 @@ class SimulationInference(object):
         for t in range(tao):
             cars_t = time_buff[t]
             for car in cars_t:
-                car_id = car.id
+                car_id = int(car.id)
                 j = vid_all.index(car_id)
                 if t == 0:
                     if agent["valid_mask"][j, t + 1] == 1:
@@ -534,14 +534,15 @@ class SimulationInference(object):
             if_coll_in_first_step = False
             TIME_BUFF_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=time_buff_input)
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
+
             # for idx in range(N):
             #     future_states[i, idx, 0] = TIME_BUFF_new[-1][idx].location.x
             #     future_states[i, idx, 1] = TIME_BUFF_new[-1][idx].location.y
             #     future_states[i, idx, 2] = TIME_BUFF_new[-1][idx].location.z
             for car in TIME_BUFF_new[-1]:
-                j = vid_all.index(car.id)
-                future_states[i, j, 0] = TIME_BUFF_new[-1][j].location.x
-                future_states[i, j, 1] = TIME_BUFF_new[-1][j].location.y
+                j = vid_all.index(int(car.id))
+                future_states[i, j, 0] = car.location.x
+                future_states[i, j, 1] = car.location.y
                 future_states[i, j, 2] = 0
 
             #detect if crash for every pair
@@ -557,8 +558,8 @@ class SimulationInference(object):
             #                     PoC_T_tmp[jdx, idx] = 1
             for car_pairs in combinations(TIME_BUFF_new[-1], r=2):
                     car_1, car_2 = car_pairs[0], car_pairs[1]
-                    idx = vid_all.index(car_1.id)
-                    jdx = vid_all.index(car_2.id)
+                    idx = vid_all.index(int(car_1.id))
+                    jdx = vid_all.index(int(car_2.id))
                     if idx != jdx:
                         v1_poly = car_1.poly_box
                         v2_poly = car_2.poly_box
@@ -575,8 +576,8 @@ class SimulationInference(object):
                     traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
                     for car_pairs in combinations(TIME_BUFF_new[-1], r=2):
                         car_1, car_2 = car_pairs[0], car_pairs[1]
-                        idx = vid_all.index(car_1.id)
-                        jdx = vid_all.index(car_2.id)
+                        idx = vid_all.index(int(car_1.id))
+                        jdx = vid_all.index(int(car_2.id))
                         if idx != jdx:
                             v1_poly = car_1.poly_box
                             v2_poly = car_2.poly_box
@@ -614,7 +615,7 @@ class SimulationInference(object):
         Trajectory_info["PoC_T"] = torch.tensor(PoC_T, dtype=torch.float32)
 
         #record all the info above
-        with open(result_dir + f"{num_idx[0]}_{num_idx[1]}.pkl", "wb") as f:
+        with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}.pkl", "wb") as f:
             pickle.dump(Trajectory_info, f)
     
     def check_crash_samples(self, max_time, result_dir, num_idx, initial_TIME_BUFF=None):
@@ -699,7 +700,7 @@ class SimulationInference(object):
             visualize_TIME_BUFF = TIME_BUFF
 
         os.makedirs(save_path, exist_ok=True)
-        collision_video_writer = cv2.VideoWriter(save_path + r'/{0}.mp4'.format(file_name), cv2.VideoWriter_fourcc(*'MP4V'), self.save_fps, (background_map.w, background_map.h))
+        collision_video_writer = cv2.VideoWriter(save_path + r'/{0}.mp4'.format(file_name), cv2.VideoWriter_fourcc(*'mp4v'), self.save_fps, (background_map.w, background_map.h))
         for i in range(len(visualize_TIME_BUFF)):
             vehicle_list = visualize_TIME_BUFF[i]
             vis = background_map.render(vehicle_list, with_traj=with_traj, linewidth=6, color_vid_list=color_vid_list)

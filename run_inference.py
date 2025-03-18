@@ -71,14 +71,14 @@ if __name__ == '__main__':
 
     #Get the visual of 1000 results
     save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/3/"
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    if not os.path.exists(save_path_1):
+        os.makedirs(save_path_1)
     
     save_path_2 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/4/"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     
-    for i in range(1000):
+    for i in tqdm(range(5000, 6000)):
         if os.path.exists(save_sim_path + f"{i}.pkl"):
             with open(save_sim_path + f"{i}.pkl", "rb") as f:
                 infos = pickle.load(f)
@@ -94,7 +94,8 @@ if __name__ == '__main__':
                         if not os.path.exists(dir_path):
                             os.makedirs(dir_path)
                         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=time_buff_all[win_start:(win_start+6)], sim_num=100, result_dir=save_path_1, num_idx=num_idx, poc_dir=dir_path)
-                        simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+6)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
+                        simulation_inference_model.save_check_sample_result(time_buff=time_buff_all[win_start:(win_start+6)], idx="vis", save_path=dir_path)
+                        #simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+6)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
 
     
