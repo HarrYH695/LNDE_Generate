@@ -70,7 +70,11 @@ if __name__ == '__main__':
     # print(f"Find collision num: {coll_num}")
 
     #Get the visual of 1000 results
-    save_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/3/"
+    save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/3/"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    
+    save_path_2 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/4/"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     
@@ -84,7 +88,15 @@ if __name__ == '__main__':
                         num_idx = np.zeros(2)
                         num_idx[0] = i
                         num_idx[1] = win_start
-                        simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=time_buff_all[win_start:(win_start+6)], sim_num=100, result_dir=save_path, num_idx=num_idx)
+
+                        #si,ulate + vis_res: Image and PoC
+                        dir_path = save_path_2 + f"{i}_{win_start}/"
+                        if not os.path.exists(dir_path):
+                            os.makedirs(dir_path)
+                        simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=time_buff_all[win_start:(win_start+6)], sim_num=100, result_dir=save_path_1, num_idx=num_idx, poc_dir=dir_path)
+                        simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+6)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
+
+
     
 
 #python run_inference.py --experiment-name wo_cal_pc_7_vis --folder-idx 3 --config ./configs/rounD_inference.yml --viz-flag

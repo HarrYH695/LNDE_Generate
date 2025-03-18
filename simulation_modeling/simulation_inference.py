@@ -427,7 +427,7 @@ class SimulationInference(object):
 
         self.one_sim_wall_time = (tt + 1) * self.sim_resol * self.rolling_step
 
-    def run_sim_steps_for_certain_TIME_BUFF(self, time_buff, sim_num, result_dir, num_idx, T=5): 
+    def run_sim_steps_for_certain_TIME_BUFF(self, time_buff, sim_num, result_dir, num_idx, poc_dir, T=5): 
         #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC
         # car_num_ineq = True
         # while car_num_ineq: 
@@ -606,6 +606,10 @@ class SimulationInference(object):
         Trajectory_info["safety_flag"] = [[torch.tensor(flag, dtype=torch.float32) for flag in line]for line in safety_flag]
 
         PoC_T = PoC_T / sim_num
+        #save poc
+        df_poc = pd.DataFrame(PoC_T)
+        df_poc.to_csv(poc_dir + "poc.csv", index=False)
+
         Trajectory_info["future_states"] = torch.tensor(future_states, dtype=torch.float32)
         Trajectory_info["PoC_T"] = torch.tensor(PoC_T, dtype=torch.float32)
 
@@ -660,9 +664,9 @@ class SimulationInference(object):
 
         return 0
     
-    def vis_TimeBuff_PoC(self, original_tb_dir, poc_dir, save_path):
-
-        return
+    # def vis_TimeBuff_PoC(self, file_path, original_tb_dir, poc_dir, save_path):
+        
+    #     return
 
     def save_check_sample_result(self, time_buff, idx, save_path):
         self.save_time_buff_video(TIME_BUFF=time_buff, background_map=self.background_map, file_name=idx, save_path=save_path)
@@ -676,6 +680,15 @@ class SimulationInference(object):
             # img = cv2.resize(img, (768, int(768 * background_map.h / background_map.w)))  # resize when needed
             cv2.imshow('vis', img)  # rgb-->bgr
             cv2.waitKey(1)
+
+    def _save_vis_time_buff(self, TIME_BUFF, background_map, save_path):
+        for i in range(len(TIME_BUFF)):
+            vehicle_list = TIME_BUFF[i]
+            vis = background_map.render(vehicle_list, with_traj=True, linewidth=6)
+            img = vis[:, :, ::-1]
+            # img = cv2.resize(img, (768, int(768 * background_map.h / background_map.w)))  # resize when needed
+            cv2.imwrite(save_path, img)  # rgb-->bgr
+
 
     def save_time_buff_video(self, TIME_BUFF, background_map, file_name, save_path, color_vid_list=None, with_traj=True):
         if self.interpolate_flag:
