@@ -651,7 +651,7 @@ class SimulationInference(object):
                         states_to_be_considered.append(time_buff_t)
                 #print(len(states_to_be_considered))
 
-                if len(states_to_be_considered) >= 6:
+                if len(states_to_be_considered) >= 7:
                     infos = {}
                     #infos["whole_inference_states"] = self.one_sim_TIME_BUFF
                     infos["states_considered"] = states_to_be_considered[::-1]
