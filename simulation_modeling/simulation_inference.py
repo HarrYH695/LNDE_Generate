@@ -459,21 +459,22 @@ class SimulationInference(object):
         Trajectory_info["map_id"] = "rounD"
         
         #record the info of TIME_BUFF 
-        agent = {}
-        agent["num_nodes"] = N
-        agent["av_index"] = 0
-        agent["predict_mask"] = np.ones((N, tao))
-        agent["predict_mask"] = torch.tensor(agent["predict_mask"], dtype=torch.bool)
-        agent["id"] = np.arange(N)
-        agent["type"] = torch.zeros(N, dtype=torch.uint8)
-        agent["category"] = torch.zeros(N, dtype=torch.uint8)
-        agent["shape"] = torch.tensor([3.6, 1.8, 1.5], dtype=torch.float32)
+        # agent = {}
+        # agent["num_nodes"] = N
+        # agent["av_index"] = 0
+        # agent["predict_mask"] = np.ones((N, tao))
+        # agent["predict_mask"] = torch.tensor(agent["predict_mask"], dtype=torch.bool)
+        # agent["id"] = np.arange(N)
+        # agent["type"] = torch.zeros(N, dtype=torch.uint8)
+        # agent["category"] = torch.zeros(N, dtype=torch.uint8)
+        # agent["shape"] = torch.tensor([3.6, 1.8, 1.5], dtype=torch.float32)
 
-        agent["position"] = -np.ones((N, tao, 3))
-        agent["heading"] = -np.ones((N, tao))
-        agent["velocity"] = -np.ones((N, tao, 3))
-        agent["valid_mask"] = np.zeros((N, tao))
+        # agent["position"] = -np.ones((N, tao, 3))
+        # agent["heading"] = -np.ones((N, tao))
+        # agent["velocity"] = -np.ones((N, tao, 3))
+        # agent["valid_mask"] = np.zeros((N, tao))
 
+        #wrong code
         #for t in range(tao):
         #    for i in range(N):
         #        v = TIME_BUFF[t][i]
@@ -484,41 +485,42 @@ class SimulationInference(object):
         #        else:
         #            agent["velocity"][i, t] = (np.sqrt((TIME_BUFF[t][i].location.x - TIME_BUFF[t+1][i].location.x)**2 + (TIME_BUFF[t][i].location.y - TIME_BUFF[t+1][i].location.y)**2))/0.4
 
-        for t in range(tao):
-            cars_t = time_buff[t]
-            for car in cars_t:
-                car_id = int(car.id)
-                j = vid_all.index(car_id)
-                agent["position"][j, t, :] = np.array([car.location.x, car.location.y, 0])
-                agent["valid_mask"][j, t] = 1
-                if car.speed_heading <= 180:
-                    agent["heading"][j, t] = car.speed_heading * np.pi / 180
-                else:
-                    agent["heading"][j, t] = (car.speed_heading - 360) * np.pi / 180
 
-        for t in range(tao):
-            cars_t = time_buff[t]
-            for car in cars_t:
-                car_id = int(car.id)
-                j = vid_all.index(car_id)
-                if t == 0:
-                    if agent["valid_mask"][j, t + 1] == 1:
-                        vel = np.sqrt((agent["position"][j, t, 0] - agent["position"][j, t + 1, 0])**2 + (agent["position"][j, t, 1] - agent["position"][j, t + 1, 1])**2)/0.4
-                        agent["velocity"][j, t, 0] = np.abs(np.cos(agent["heading"][j, t] * np.pi / 180) * vel)
-                        agent["velocity"][j, t, 1] = np.abs(np.sin(agent["heading"][j, t] * np.pi / 180) * vel)
-                        agent["velocity"][j, t, 2] = 0
-                else:
-                    if agent["valid_mask"][j, t - 1] == 1:
-                        vel = np.sqrt((agent["position"][j, t, 0] - agent["position"][j, t - 1, 0])**2 + (agent["position"][j, t, 1] - agent["position"][j, t - 1, 1])**2)/0.4
-                        agent["velocity"][j, t, 0] = np.abs(np.cos(agent["heading"][j, t] * np.pi / 180) * vel)
-                        agent["velocity"][j, t, 1] = np.abs(np.sin(agent["heading"][j, t] * np.pi / 180) * vel)
-                        agent["velocity"][j, t, 2] = 0
+        # for t in range(tao):
+        #     cars_t = time_buff[t]
+        #     for car in cars_t:
+        #         car_id = int(car.id)
+        #         j = vid_all.index(car_id)
+        #         agent["position"][j, t, :] = np.array([car.location.x, car.location.y, 0])
+        #         agent["valid_mask"][j, t] = 1
+        #         if car.speed_heading <= 180:
+        #             agent["heading"][j, t] = car.speed_heading * np.pi / 180
+        #         else:
+        #             agent["heading"][j, t] = (car.speed_heading - 360) * np.pi / 180
 
-        agent["valid_mask"] = torch.tensor(agent["valid_mask"], dtype=torch.bool)
-        agent["position"] = torch.tensor(agent["position"], dtype=torch.float32)
-        agent["heading"] = torch.tensor(agent["heading"], dtype=torch.float32)
-        agent["velocity"] = torch.tensor(agent["velocity"], dtype=torch.float32)
-        Trajectory_info["agent"] = agent
+        # for t in range(tao):
+        #     cars_t = time_buff[t]
+        #     for car in cars_t:
+        #         car_id = int(car.id)
+        #         j = vid_all.index(car_id)
+        #         if t == 0:
+        #             if agent["valid_mask"][j, t + 1] == 1:
+        #                 vel = np.sqrt((agent["position"][j, t, 0] - agent["position"][j, t + 1, 0])**2 + (agent["position"][j, t, 1] - agent["position"][j, t + 1, 1])**2)/0.4
+        #                 agent["velocity"][j, t, 0] = np.abs(np.cos(agent["heading"][j, t] * np.pi / 180) * vel)
+        #                 agent["velocity"][j, t, 1] = np.abs(np.sin(agent["heading"][j, t] * np.pi / 180) * vel)
+        #                 agent["velocity"][j, t, 2] = 0
+        #         else:
+        #             if agent["valid_mask"][j, t - 1] == 1:
+        #                 vel = np.sqrt((agent["position"][j, t, 0] - agent["position"][j, t - 1, 0])**2 + (agent["position"][j, t, 1] - agent["position"][j, t - 1, 1])**2)/0.4
+        #                 agent["velocity"][j, t, 0] = np.abs(np.cos(agent["heading"][j, t] * np.pi / 180) * vel)
+        #                 agent["velocity"][j, t, 1] = np.abs(np.sin(agent["heading"][j, t] * np.pi / 180) * vel)
+        #                 agent["velocity"][j, t, 2] = 0
+
+        # agent["valid_mask"] = torch.tensor(agent["valid_mask"], dtype=torch.bool)
+        # agent["position"] = torch.tensor(agent["position"], dtype=torch.float32)
+        # agent["heading"] = torch.tensor(agent["heading"], dtype=torch.float32)
+        # agent["velocity"] = torch.tensor(agent["velocity"], dtype=torch.float32)
+        # Trajectory_info["agent"] = agent
         
         #run "sim_num" number of i.d. simulations of the TIME_BUFF 
         each_time_num = int(sim_num / T)
@@ -526,13 +528,14 @@ class SimulationInference(object):
         PoC_T = np.zeros((N, N))
 
         time_buff_input = copy.deepcopy(time_buff[1:])
-        traj_pool = self.sim.time_buff_to_traj_pool(time_buff_input)
+        traj_pool_input = self.sim.time_buff_to_traj_pool(time_buff_input)
 
         #tao + 1
         for i in range(sim_num):
+            
             PoC_T_tmp = np.zeros((N, N))
             if_coll_in_first_step = False
-            TIME_BUFF_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=time_buff_input)
+            TIME_BUFF_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool_input, TIME_BUFF=time_buff_input)
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
 
             # for idx in range(N):
@@ -556,6 +559,7 @@ class SimulationInference(object):
             #                 if v1_poly.intersects(v2_poly):
             #                     PoC_T_tmp[idx, jdx] = 1
             #                     PoC_T_tmp[jdx, idx] = 1
+            crash_num=0
             for car_pairs in combinations(TIME_BUFF_new[-1], r=2):
                     car_1, car_2 = car_pairs[0], car_pairs[1]
                     idx = vid_all.index(int(car_1.id))
@@ -567,9 +571,17 @@ class SimulationInference(object):
                             PoC_T_tmp[idx, jdx] = 1
                             PoC_T_tmp[jdx, idx] = 1
                             if_coll_in_first_step = True
+                            crash_num += 1
+
+            if crash_num > 2:
+                with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}_{i}_1.pkl", "wb") as f:
+                    pickle.dump(TIME_BUFF_new, f)
+                break
+
 
             if not if_coll_in_first_step:
                 traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
+                crash_event_num2 = 0
                 for roll_i in range(4):
                     TIME_BUFF_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
                     TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, dataset=self.dataset)
@@ -584,39 +596,47 @@ class SimulationInference(object):
                             if v1_poly.intersects(v2_poly):
                                 PoC_T_tmp[idx, jdx] = 1
                                 PoC_T_tmp[jdx, idx] = 1
+                                crash_event_num2 += 1
+
+                    if crash_event_num2 > 2:
+                        with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}_{i}.pkl", "wb") as f:
+                            pickle.dump(TIME_BUFF_new, f)
+                        break
+
             
             PoC_T = PoC_T + PoC_T_tmp
 
         # print(f"max:{np.max(PoC_T)}, min:{np.min(PoC_T)}")
         # print(f"car_num:{N}, N**2={N**2}")
         # print(f"no_conflict_num:{np.sum(PoC_T == 0)}")
-        # print(f"no_conflict_rate:{(np.sum(PoC_T == 0) - N)/(N**2-N)}")
-        safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
-        for i in range(N):
-            for j in range(N):
-                if i == j or PoC_T[i, j] == 0:
-                    safety_flag[i, j] = 0
-                    safety_flag[j, i] = 0
-                elif PoC_T[i, j] == sim_num:
-                    safety_flag[i, j] = 1
-                    safety_flag[j, i] = 1
-                else:
-                    safety_flag[i, j] = 2
-                    safety_flag[j, i] = 2
+        # print(f"no_conflict_rate:{(np.sum(PoC_T == 0) - N)/(N**2-N)}")]
+
+        # safety_flag = np.zeros((agent["num_nodes"], agent["num_nodes"]))
+        # for i in range(N):
+        #     for j in range(N):
+        #         if i == j or PoC_T[i, j] == 0:
+        #             safety_flag[i, j] = 0
+        #             safety_flag[j, i] = 0
+        #         elif PoC_T[i, j] == sim_num:
+        #             safety_flag[i, j] = 1
+        #             safety_flag[j, i] = 1
+        #         else:
+        #             safety_flag[i, j] = 2
+        #             safety_flag[j, i] = 2
                 
-        Trajectory_info["safety_flag"] = [[torch.tensor(flag, dtype=torch.float32) for flag in line]for line in safety_flag]
+        #Trajectory_info["safety_flag"] = [[torch.tensor(flag, dtype=torch.float32) for flag in line]for line in safety_flag]
 
         PoC_T = PoC_T / sim_num
         #save poc
         df_poc = pd.DataFrame(PoC_T)
         df_poc.to_csv(poc_dir + "poc.csv", index=False)
 
-        Trajectory_info["future_states"] = torch.tensor(future_states, dtype=torch.float32)
-        Trajectory_info["PoC_T"] = torch.tensor(PoC_T, dtype=torch.float32)
+        # Trajectory_info["future_states"] = torch.tensor(future_states, dtype=torch.float32)
+        # Trajectory_info["PoC_T"] = torch.tensor(PoC_T, dtype=torch.float32)
 
         #record all the info above
-        with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}.pkl", "wb") as f:
-            pickle.dump(Trajectory_info, f)
+        # with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}.pkl", "wb") as f:
+        #     pickle.dump(Trajectory_info, f)
     
     def check_crash_samples(self, max_time, result_dir, num_idx, initial_TIME_BUFF=None):
         #sample from history traj, then simulate for a long time until get a crash.

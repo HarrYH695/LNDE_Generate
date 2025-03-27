@@ -56,6 +56,28 @@ if __name__ == '__main__':
 
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
+    
+    #test!
+    #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
+    #data = pickle.load(open(file_t+"17.pkl", "rb"))
+    #timeb = data["states_considered"]
+    #timeb_considered = timeb[10:16]
+    #print(len(timeb_considered))
+    #simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=np.zeros(2), poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/")
+
+    idxx = 0
+    for i in range(99):
+        data = pickle.load(open("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl", "rb"))
+        simulation_inference_model.save_check_sample_result(time_buff=data, idx=f"{idxx}", save_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res2/")
+
+        idxx += 1
+
+
+
+
+
+
+
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
@@ -70,31 +92,31 @@ if __name__ == '__main__':
     # print(f"Find collision num: {coll_num}")
 
     #Get the visual of 1000 results
-    save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/3/"
-    if not os.path.exists(save_path_1):
-        os.makedirs(save_path_1)
+    # save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/3/"
+    # if not os.path.exists(save_path_1):
+    #     os.makedirs(save_path_1)
     
-    save_path_2 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/4/"
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    # save_path_2 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/Trial_6/4/"
+    # if not os.path.exists(save_path):
+    #     os.makedirs(save_path)
     
-    for i in tqdm(range(5000, 6000)):
-        if os.path.exists(save_sim_path + f"{i}.pkl"):
-            with open(save_sim_path + f"{i}.pkl", "rb") as f:
-                infos = pickle.load(f)
-                time_buff_all = infos["states_considered"]
-                if len(time_buff_all) > 6:
-                    for win_start in range(len(time_buff_all) - 6):
-                        num_idx = np.zeros(2)
-                        num_idx[0] = i
-                        num_idx[1] = win_start
+    # for i in tqdm(range(5000, 6000)):
+    #     if os.path.exists(save_sim_path + f"{i}.pkl"):
+    #         with open(save_sim_path + f"{i}.pkl", "rb") as f:
+    #             infos = pickle.load(f)
+    #             time_buff_all = infos["states_considered"]
+    #             if len(time_buff_all) > 6:
+    #                 for win_start in range(len(time_buff_all) - 6):
+    #                     num_idx = np.zeros(2)
+    #                     num_idx[0] = i
+    #                     num_idx[1] = win_start
 
-                        #si,ulate + vis_res: Image and PoC
-                        dir_path = save_path_2 + f"{i}_{win_start}/"
-                        if not os.path.exists(dir_path):
-                            os.makedirs(dir_path)
-                        simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=time_buff_all[win_start:(win_start+6)], sim_num=100, result_dir=save_path_1, num_idx=num_idx, poc_dir=dir_path)
-                        simulation_inference_model.save_check_sample_result(time_buff=time_buff_all[win_start:(win_start+6)], idx="vis", save_path=dir_path)
+    #                     #si,ulate + vis_res: Image and PoC
+    #                     dir_path = save_path_2 + f"{i}_{win_start}/"
+    #                     if not os.path.exists(dir_path):
+    #                         os.makedirs(dir_path)
+    #                     simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=time_buff_all[win_start:(win_start+6)], sim_num=100, result_dir=save_path_1, num_idx=num_idx, poc_dir=dir_path)
+    #                     simulation_inference_model.save_check_sample_result(time_buff=time_buff_all[win_start:(win_start+6)], idx="vis", save_path=dir_path)
                         #simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+6)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
 
