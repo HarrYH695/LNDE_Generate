@@ -128,3 +128,7 @@ logfile.json
 # But not the requirement.txt files...
 /data
 /results
+
+*.pkl
+*.csv
+*.mp4
