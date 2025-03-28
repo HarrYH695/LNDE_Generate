@@ -58,19 +58,34 @@ if __name__ == '__main__':
     simulation_inference_model = SimulationInference(configs=configs)
     
     #test!
-    #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
-    #data = pickle.load(open(file_t+"17.pkl", "rb"))
-    #timeb = data["states_considered"]
-    #timeb_considered = timeb[10:16]
-    #print(len(timeb_considered))
-    #simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=np.zeros(2), poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/")
+    file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
+    # with open("/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/wrong_case_2.txt", "r") as f:
+    #     for line in f:
+    #         file_info = line.strip()
+    #         file_info = line[:-5]
+    #         file_name, num_s = file_info.split('_')
+    #         data = pickle.load(open(file_t+file_name+'.pkl', "rb"))
+    #         timeb = data["states_considered"]
+    #         timeb_considered = timeb[int(num_s):int(num_s)+6]
+    #         num_idx=np.zeros(2)
+    #         num_idx[0] = int(file_name)
+    #         num_idx[1] = int(num_s)
+    #         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=num_idx, poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_poc_changed/")
 
-    idxx = 0
-    for i in range(99):
-        data = pickle.load(open("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl", "rb"))
-        simulation_inference_model.save_check_sample_result(time_buff=data, idx=f"{idxx}", save_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res2/")
 
-        idxx += 1
+
+    file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
+    data = pickle.load(open(file_t+"2387.pkl", "rb"))
+    timeb = data["states_considered"]
+    timeb_considered = timeb[5:11]
+    print(len(timeb_considered))
+    simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=np.zeros(2), poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/")
+
+    for i in tqdm(range(10)):
+        if os.path.exists("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl"):
+            data = pickle.load(open("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl", "rb"))
+            simulation_inference_model.save_check_sample_result(time_buff=data, idx=f"{i}", save_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res7/")
+
 
 
 
@@ -120,7 +135,7 @@ if __name__ == '__main__':
                         #simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+6)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
 
-    
+
 
 #python run_inference.py --experiment-name wo_cal_pc_7_vis --folder-idx 3 --config ./configs/rounD_inference.yml --viz-flag
 # store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results

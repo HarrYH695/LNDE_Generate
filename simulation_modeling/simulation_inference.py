@@ -559,24 +559,24 @@ class SimulationInference(object):
             #                 if v1_poly.intersects(v2_poly):
             #                     PoC_T_tmp[idx, jdx] = 1
             #                     PoC_T_tmp[jdx, idx] = 1
-            crash_num=0
-            for car_pairs in combinations(TIME_BUFF_new[-1], r=2):
-                    car_1, car_2 = car_pairs[0], car_pairs[1]
-                    idx = vid_all.index(int(car_1.id))
-                    jdx = vid_all.index(int(car_2.id))
-                    if idx != jdx:
-                        v1_poly = car_1.poly_box
-                        v2_poly = car_2.poly_box
-                        if v1_poly.intersects(v2_poly):
-                            PoC_T_tmp[idx, jdx] = 1
-                            PoC_T_tmp[jdx, idx] = 1
-                            if_coll_in_first_step = True
-                            crash_num += 1
 
-            if crash_num > 2:
-                with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}_{i}_1.pkl", "wb") as f:
-                    pickle.dump(TIME_BUFF_new, f)
-                break
+            for car_pairs in combinations(TIME_BUFF_new[-1], r=2):
+                car_1, car_2 = car_pairs[0], car_pairs[1]
+                idx = vid_all.index(int(car_1.id))
+                jdx = vid_all.index(int(car_2.id))
+                if idx != jdx:
+                    v1_poly = car_1.poly_box
+                    v2_poly = car_2.poly_box
+                    if v1_poly.intersects(v2_poly):
+                        PoC_T_tmp[idx, jdx] = 1
+                        PoC_T_tmp[jdx, idx] = 1
+                        if_coll_in_first_step = True
+                        
+
+            # if crash_num > 2:
+            #     with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}_{i}_1.pkl", "wb") as f:
+            #         pickle.dump(TIME_BUFF_new, f)
+            #     break
 
 
             if not if_coll_in_first_step:
@@ -597,11 +597,19 @@ class SimulationInference(object):
                                 PoC_T_tmp[idx, jdx] = 1
                                 PoC_T_tmp[jdx, idx] = 1
                                 crash_event_num2 += 1
+                                
+                                
 
-                    if crash_event_num2 > 2:
+                    if crash_event_num2 > 0:
                         with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}_{i}.pkl", "wb") as f:
                             pickle.dump(TIME_BUFF_new, f)
-                        break
+                        break 
+
+
+                    # if crash_event_num2 >= 2:
+                    #     with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}_{i}.pkl", "wb") as f:
+                    #         pickle.dump(TIME_BUFF_new, f)
+                    #     break
 
             
             PoC_T = PoC_T + PoC_T_tmp
@@ -629,7 +637,7 @@ class SimulationInference(object):
         PoC_T = PoC_T / sim_num
         #save poc
         df_poc = pd.DataFrame(PoC_T)
-        df_poc.to_csv(poc_dir + "poc.csv", index=False)
+        df_poc.to_csv(poc_dir + f"{num_idx[0]}_{num_idx[1]}.csv", index=False)
 
         # Trajectory_info["future_states"] = torch.tensor(future_states, dtype=torch.float32)
         # Trajectory_info["PoC_T"] = torch.tensor(PoC_T, dtype=torch.float32)
