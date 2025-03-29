@@ -632,7 +632,7 @@ class SimulationInference(object):
         PoC_T = PoC_T / sim_num
         #save poc
         df_poc = pd.DataFrame(PoC_T)
-        df_poc.to_csv(poc_dir + f"{num_idx[0]}_{num_idx[1]}.csv", index=False)
+        df_poc.to_csv(poc_dir + f"{int(num_idx[0])}_{int(num_idx[1])}.csv", index=False)
 
         Trajectory_info["future_states"] = torch.tensor(future_states, dtype=torch.float32)
         Trajectory_info["PoC_T"] = torch.tensor(PoC_T, dtype=torch.float32)
