@@ -73,19 +73,19 @@ if __name__ == '__main__':
     #         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=num_idx, poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_poc_changed/")
 
 
-    file_idx = 2387
-    start_i = 18
-    file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_7/2/"
-    data = pickle.load(open(file_t+f"{file_idx}.pkl", "rb"))
-    timeb = data["states_considered"]
-    timeb_considered = timeb[start_i:start_i+5]
-    print(len(timeb_considered))
-    simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=np.zeros(2), poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/")
+    # file_idx = 4043
+    # start_i = 9
+    # file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_7/1/"
+    # data = pickle.load(open(file_t+f"{file_idx}.pkl", "rb"))
+    # timeb = data["states_considered"]
+    # timeb_considered = timeb[start_i:start_i+5]
+    # print(len(timeb_considered))
+    # simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=np.zeros(2), poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/")
 
-    for i in tqdm(range(20)):
+    for i in tqdm(range(10)):
         if os.path.exists("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl"):
             data = pickle.load(open("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl", "rb"))
-            simulation_inference_model.save_check_sample_result(time_buff=data, idx=f"{i}", save_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res8/")
+            simulation_inference_model.save_check_sample_result(time_buff=data, idx=f"{i}", save_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res2/")
 
 
 
