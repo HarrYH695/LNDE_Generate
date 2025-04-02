@@ -49,3 +49,5 @@ import copy
 
 file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_7/2/" # num: 7258
 print(len(os.listdir(file_t)))
+
+#scp -r mtl@35.3.214.134:~/Documents/conflict_detection/Conflict-Identifier-Network/behavior_net/ /home/hanhy/ondemand/data/sys/myjobs/Identifier_Update/
