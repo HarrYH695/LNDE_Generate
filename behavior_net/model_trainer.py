@@ -338,6 +338,8 @@ class Trainer(object):
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
             self.G_pred_std.append(std)
+            print(mu.shape)
+            print(self.G_pred_mean[0].shape)
 
             #print(f"x_input:{x_input.shape}")
 
@@ -359,6 +361,7 @@ class Trainer(object):
         # reg loss (between pred0 and gt)
         G_pred_mean_at_step0 = self.G_pred_mean[0]
         G_pred_std_at_step0 = self.G_pred_std[0]
+
 
         G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
         G_pred_std_pos_at_step0 = G_pred_std_at_step0

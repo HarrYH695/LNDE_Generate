@@ -22,7 +22,7 @@ gen_realistic_metric_dict:  # What metrics to generate.
 model: "transformer"  # transformer or bn_mlp
 dataset: "AA_rdbt"
 history_length: 5  # number of historical steps input to the model
-pred_length: 5  # number of predicted steps output by the model
+pred_length: 1  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
 
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
@@ -30,7 +30,7 @@ behavior_model_ckpt_dir: "data/inference/AA_rdbt/behavior_model_ckpt/AA_rdbt_beh
 safety_mapper_ckpt_dir: "data/inference/AA_rdbt/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
-use_neural_safety_mapping: True
+use_neural_safety_mapping: False
 
 # Whether use conflict critic module (crash critic module)
 use_conflict_critic_module: True
