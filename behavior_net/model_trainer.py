@@ -105,9 +105,9 @@ class Trainer(object):
         # tensorboard writer
         self.writer = SummaryWriter(self.vis_dir)
 
-    def _load_checkpoint(self):
+    def _load_checkpoint(self, start_id=0):
 
-        if os.path.exists(os.path.join(self.checkpoint_dir, 'last_ckpt.pt')):
+        if os.path.exists(os.path.join(self.checkpoint_dir, f'ckpt_{start_id}.pt')):
             print('loading last checkpoint...')
             # load the entire checkpoint
             checkpoint = torch.load(os.path.join(self.checkpoint_dir, 'last_ckpt.pt'))
@@ -165,13 +165,14 @@ class Trainer(object):
         else:
             m_batches = len(self.dataloaders['val'])
 
-        if np.mod(self.batch_id, 100) == 1:
-            print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '
-                  'G_adv_loss: %.5f, D_adv_loss: %.5f, running_acc_pos: %.5f, running_acc_heading: %.5f'
-                  % (self.is_training, self.epoch_id, self.max_num_epochs-1, self.batch_id, m_batches,
-                     self.reg_loss_position.item(), self.reg_loss_heading.item(),
-                     self.G_adv_loss.item(), self.D_adv_loss.item(), np.mean(self.running_acc_pos),
-                     np.mean(self.running_acc_heading)))
+        # if np.mod(self.batch_id, 100) == 1:
+        #     print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '
+        #           'G_adv_loss: %.5f, D_adv_loss: %.5f, running_acc_pos: %.5f, running_acc_heading: %.5f'
+        #           % (self.is_training, self.epoch_id, self.max_num_epochs-1, self.batch_id, m_batches,
+        #              self.reg_loss_position.item(), self.reg_loss_heading.item(),
+        #              self.G_adv_loss.item(), self.D_adv_loss.item(), np.mean(self.running_acc_pos),
+        #              np.mean(self.running_acc_heading)))
+
 
     def _collect_epoch_states(self):
 
@@ -215,10 +216,10 @@ class Trainer(object):
             self.writer.add_scalar("Loss/val_G_adv", self.val_epoch_loss_G_adv, self.epoch_id)
         print()
 
-    def _update_checkpoints(self):
+    def _update_checkpoints(self, epoch_id):
 
         # save current model
-        self._save_checkpoint(ckpt_name='last_ckpt.pt')
+        self._save_checkpoint(ckpt_name=f'ckpt_{epoch_id}.pt')
         sum_val_epoch_acc = self.val_epoch_acc_pos + self.val_epoch_acc_heading
         print('Latest model updated. Epoch_acc_pos=%.4f, Epoch_acc_heading=%.4f,'
               'Sum Epoch_acc=%.4f'
@@ -314,6 +315,8 @@ class Trainer(object):
         self.batch = batch
         self.x = batch['input'].to(device)
         self.gt = self.batch['gt'].to(device)
+        # print(f"self.x:{self.x.shape}")
+        # print(f"self.gt:{self.gt.shape}")
 
         self.mask = torch.ones_like(self.gt)
         self.mask[torch.isnan(self.gt)] = 0.0
@@ -331,10 +334,13 @@ class Trainer(object):
             mu, std, cos_sin_heading = self.net_G(x_input)
             x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
             x_input = x_input * self.rollout_mask  # For future rollouts
-            x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input)
+            #x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input) #no safety_mapping
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
             self.G_pred_std.append(std)
+
+            #print(f"x_input:{x_input.shape}")
+
 
     def _compute_acc(self):
         G_pred_mean_at_step0 = self.G_pred_mean[0]
@@ -364,31 +370,44 @@ class Trainer(object):
         self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
         D_pred_fake = self.net_D(self.G_pred_mean[0])
+        #print(f"D_pred_fake:{D_pred_fake.shape}")
         # Filter out ghost vehicles
         # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
-        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 20).flatten()  # bs * m_token.
+        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
         D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
+        #print(f"D_pred_fake_filtered:{D_pred_fake_filtered.shape}")
         self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
         self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
+        #print(self.reg_loss_position.item(), self.reg_loss_heading.item(), self.G_adv_loss.item(), self.batch_loss_G.item())
 
     def _compute_loss_D(self):
+        # print(f"self.G_pred_mean[0]:{self.G_pred_mean[0].shape}")
+        # print(f"self.gt:{self.gt.shape}")
 
         D_pred_fake = self.net_D(self.G_pred_mean[0].detach())
         D_pred_real = self.net_D(self.gt.detach())
 
+        # print(f"D_pred_fake:{D_pred_fake.shape}")
+        # print(f"D_pred_real:{D_pred_real.shape}")
+
         # Filter out ghost vehicles
-        pred_fake_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 20).flatten()  # bs * m_token.
+        pred_fake_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
         D_pred_fake_filtered = (D_pred_fake.flatten())[pred_fake_ghost_vehicles_mask]
 
-        pred_real_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 20).flatten()  # bs * m_token.
+        pred_real_ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
         D_pred_real_filtered = (D_pred_real.flatten())[pred_real_ghost_vehicles_mask]
+
+        # print(f"D_pred_fake_filtered:{D_pred_fake_filtered.shape}")
+        # print(f"D_pred_real_filtered:{D_pred_real_filtered.shape}")
 
         D_adv_loss_fake = self.gan_loss(D_pred_fake_filtered, False)
         D_adv_loss_real = self.gan_loss(D_pred_real_filtered, True)
         self.D_adv_loss = 0.5 * (D_adv_loss_fake + D_adv_loss_real)
 
         self.batch_loss_D = self.D_adv_loss
+        # print(f"D_adv_loss_fake:{D_adv_loss_fake}")
+        # print(f"D_adv_loss_real:{D_adv_loss_real}")
 
     def _backward_G(self):
         self.batch_loss_G.backward()
@@ -407,7 +426,7 @@ class Trainer(object):
         In each minibatch, we perform gradient descent on the network parameters.
         """
 
-        self._load_checkpoint()
+        self._load_checkpoint(start_id=0)
 
         # loop over the dataset multiple times
         for self.epoch_id in range(self.epoch_to_start, self.max_num_epochs):
@@ -456,7 +475,8 @@ class Trainer(object):
 
             ########### Update_Checkpoints ###########
             ##########################################
-            self._update_checkpoints()
+            if (self.epoch_id + 1) % 10 == 0:
+                self._update_checkpoints(epoch_id=self.epoch_id)
 
             ########### Update_LR Scheduler ##########
             ##########################################

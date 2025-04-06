@@ -5,7 +5,7 @@ path_to_traj_data: "data/training/behavior_net/AA_rdbt/AA_rdbt-10h-data-local-he
 # Model settings
 model: transformer  # transformer or bn_mlp
 history_length: 5  # number of historical steps input to the model
-pred_length: 5  # number of predicted steps output by the model
+pred_length: 1  # number of predicted steps output by the model, if it is 1, then focus on "the next step". origin:5
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
 
 # Training settings
