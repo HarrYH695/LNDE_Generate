@@ -99,7 +99,6 @@ if __name__ == '__main__':
     #     coll_num += coll
     # print(f"Find collision num: {coll_num}")
 
-
     #Get the visual of 1000 results
     save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
     if not os.path.exists(save_path_1):

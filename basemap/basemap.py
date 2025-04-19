@@ -36,22 +36,21 @@ def _draw_trust_region(vis, pts, r, color):
                     color=color, thickness=1, lineType=cv2.LINE_AA)
 
 
-def _print_vehicle_info(vis, ptc, v, color):
-    return
+def _print_vehicle_info(vis, ptc, v, color, id_list):
 
-    # print latitude (x)
-    pt = (ptc[0] + 15, ptc[1])
-    text = "%.6f" % v.location.x
-    cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
-    # print longitude (y)
-    pt = (ptc[0] + 15, ptc[1] + 20)
-    text = "%.6f" % v.location.y
-    cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+    # # print latitude (x)
+    # pt = (ptc[0] + 15, ptc[1])
+    # text = "%.6f" % v.location.x
+    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+    # # print longitude (y)
+    # pt = (ptc[0] + 15, ptc[1] + 20)
+    # text = "%.6f" % v.location.y
+    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
     # print v id
-    pt = (ptc[0] + 15, ptc[1] + 40)
-    text = "%s" % str(v.id)
+    pt = (ptc[0] + 15, ptc[1])
+    text = "%s" % str(id_list.index(int(v.id)))
     cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
 
@@ -91,14 +90,16 @@ class Basemap(GeoEngine):
 
         self.get_pixel_resolution()
 
-    def draw_location(self, vehicle_list, color_vid_list=None, rotate_deg=0.):
+        self.id_list = None
 
+    def draw_location(self, vehicle_list, id_list, color_vid_list=None, rotate_deg=0.):
         if len(vehicle_list) == 0:
             return np.copy(_rotate_image(self.basemap, rotate_deg))
             # return self.basemap
 
         # vis = np.copy(self.basemap)
         vis = np.copy(_rotate_image(self.basemap, rotate_deg))
+
 
         for i in range(0, len(vehicle_list)):
             v = vehicle_list[i]
@@ -141,7 +142,7 @@ class Basemap(GeoEngine):
                 _draw_trust_region(vis, pts_mean, r, color)
 
             # print vehicle info beside box
-            _print_vehicle_info(vis, ptc, v, (255, 255, 0))
+            _print_vehicle_info(vis, ptc, v, (255, 255, 0), self.id_list)
 
         return vis
 
@@ -188,10 +189,11 @@ class Basemap(GeoEngine):
         vis = base_layer*(1-traj_alpha) + traj_layer*traj_alpha
         return vis
 
-    def render(self, vehicle_list, with_traj=True, linewidth=2, color_vid_list=None, rotate_deg=0.):
+    def render(self, vehicle_list, id_list, with_traj=True, linewidth=2, color_vid_list=None, rotate_deg=0.):
         """
         rotate_deg – Rotate the background map. Rotation angle in degrees. Positive values mean counter-clockwise rotation
         """
+        self.id_list = id_list
         base_layer = self.draw_location(vehicle_list, color_vid_list, rotate_deg=rotate_deg)
         if with_traj:
             traj_layer, traj_alpha = self.draw_trajectory(vehicle_list, linewidth, color_vid_list)

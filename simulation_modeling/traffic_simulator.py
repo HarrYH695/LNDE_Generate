@@ -120,7 +120,7 @@ class TrafficSimulator(object):
 
         pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
 
-        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon
+        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std
 
     def do_safety_mapping(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, output_delta_position_mask=False):
         # Neural safety mapping

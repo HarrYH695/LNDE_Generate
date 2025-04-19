@@ -346,7 +346,7 @@ class SimulationInference(object):
         """
 
         # run self-simulation
-        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon = self.sim.run_forwardpass(traj_pool)
+        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std = self.sim.run_forwardpass(traj_pool)
         output_delta_position_mask = np.zeros(buff_vid.shape, dtype=bool)
 
         # determine whether to do safety mapping
@@ -366,7 +366,7 @@ class SimulationInference(object):
 
         TIME_BUFF_new = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
 
-        return TIME_BUFF_new, pred_vid, output_delta_position_mask
+        return TIME_BUFF_new, pred_vid, output_delta_position_mask, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std
 
     def update_basic_stats_of_the_current_sim_episode(self, tt, TIME_BUFF, pred_vid):
         if tt == 0:
@@ -692,9 +692,50 @@ class SimulationInference(object):
     # def vis_TimeBuff_PoC(self, file_path, original_tb_dir, poc_dir, save_path):
         
     #     return
+    def check_one_sample(self, TIME_BUFF):
+        TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)   
+        #Attention!!! Delete the cars that did not show up in the last time step!!!
+        time_buff_copy = copy.deepcopy(TIME_BUFF)
+        car_id_in_last_step = [int(time_buff_copy[-1][ci].id) for ci in range(len(time_buff_copy[-1]))]
+        
+        time_buff_input = []
+        for timeb_t in time_buff_copy:
+            timb_single = []
+            for car in timeb_t:
+                if int(car.id) in car_id_in_last_step:
+                    timb_single.append(car)
 
-    def save_check_sample_result(self, time_buff, idx, save_path):
-        self.save_time_buff_video(TIME_BUFF=time_buff, background_map=self.background_map, file_name=idx, save_path=save_path)
+            time_buff_input.append(timb_single)
+
+        traj_pool_input = self.sim.time_buff_to_traj_pool(time_buff_input)
+
+        _, _, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std = self.sim.run_forwardpass(traj_pool_input)
+        output_delta_position_mask = np.zeros(buff_vid.shape, dtype=bool)
+        # print(pred_lat.shape) (32,1)
+        # print(pred_lat_mean.shape)
+        # print(pred_lat_std.shape)
+        pred_lat = pred_lat_mean - 3 * pred_lat_std
+        pred_lon = pred_lon_mean - 3 * pred_lon_std
+        TIME_BUFF_zs = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
+
+        # pred_lat = pred_lat_mean - 3 * pred_lat_std
+        # pred_lon = pred_lon_mean + 3 * pred_lon_std
+        # TIME_BUFF_zx = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
+
+        # pred_lat = pred_lat_mean + 3 * pred_lat_std
+        # pred_lon = pred_lon_mean - 3 * pred_lon_std
+        # TIME_BUFF_ys = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
+
+        pred_lat = pred_lat_mean + 3 * pred_lat_std
+        pred_lon = pred_lon_mean + 3 * pred_lon_std
+        TIME_BUFF_yx = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
+
+        return TIME_BUFF_zs[-1], TIME_BUFF_yx[-1]
+
+
+
+    def save_check_sample_result(self, time_buff, idx, save_path, with_traj):
+        self.save_time_buff_video(TIME_BUFF=time_buff, background_map=self.background_map, file_name=idx, save_path=save_path, with_traj=with_traj)
         
     
     def _visualize_time_buff(self, TIME_BUFF, background_map):
@@ -723,11 +764,20 @@ class SimulationInference(object):
         else:
             visualize_TIME_BUFF = TIME_BUFF
 
+        vid_all = []
+        for i in range(len(visualize_TIME_BUFF)):
+            for j in range(len(visualize_TIME_BUFF[i])):
+                vid = int(visualize_TIME_BUFF[i][j].id)
+                if vid not in vid_all:
+                    vid_all.append(int(visualize_TIME_BUFF[i][j].id))
+        vid_all = sorted(vid_all)
+
+
         os.makedirs(save_path, exist_ok=True)
         collision_video_writer = cv2.VideoWriter(save_path + r'/{0}.mp4'.format(file_name), cv2.VideoWriter_fourcc(*'mp4v'), self.save_fps, (background_map.w, background_map.h))
         for i in range(len(visualize_TIME_BUFF)):
             vehicle_list = visualize_TIME_BUFF[i]
-            vis = background_map.render(vehicle_list, with_traj=with_traj, linewidth=6, color_vid_list=color_vid_list)
+            vis = background_map.render(vehicle_list=vehicle_list, id_list=vid_all, with_traj=with_traj, linewidth=5, color_vid_list=color_vid_list)
             img = vis[:, :, ::-1]
             # img = cv2.resize(img, (768, int(768 * background_map.h / background_map.w)))  # resize when needed
             collision_video_writer.write(img)
