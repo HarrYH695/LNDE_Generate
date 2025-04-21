@@ -17,12 +17,17 @@ print(len(case_files))
 
 exist_wrong_num = 0
 exist_wrong_num_gen = 0
-exist_3_sigma_gen = 0
-exist_2_sigma_gen = 0
-
-all_3_sigma = 0
-all_2_sigma = 0
-all_1_sigma = 0
+exist_wrong_num_gen_dis = 0
+exist_wrong_num_gen_ang = 0
+exist_wrong_num_gen_poc = 0
+exist_3_sigma_gen_dis = 0
+exist_2_sigma_gen_dis = 0
+exist_3_sigma_gen_ang = 0
+exist_2_sigma_gen_ang = 0
+exist_3_sigma_gen_poc = 0
+exist_2_sigma_gen_poc = 0
+exist_3_sigma_gen_allcase = 0
+exist_2_sigma_gen_allcase = 0
 
 for file in tqdm(processed_files):
     data = pickle.load(open(file_save+file, "rb"))
@@ -30,36 +35,114 @@ for file in tqdm(processed_files):
     wrong_sigma_info = data["wrong_and_sigma"] #(car_num, time, 4)
     #dis_info = data["distance_info"]
 
-    wrong_time = np.argwhere(wrong_sigma_info[:, :, 0] > 0.5)
-    # all_3_sigma += np.sum(wrong_sigma_info[:, 1])
-    # all_2_sigma += np.sum(wrong_sigma_info[:, 2])
-    # all_1_sigma += np.sum(wrong_sigma_info[:, 3])
+    wrong_time_1 = np.argwhere(wrong_sigma_info[:, :, 0] > 0.5)
+    wrong_time_2 = np.argwhere(wrong_sigma_info[:, :, 1] > 0.5)
+    wrong_time_3 = np.argwhere(wrong_sigma_info[:, :, 2] > 0.5)
 
-    if len(wrong_time) > 0:
+    if len(wrong_time_1) > 0 or len(wrong_time_2) > 0 or len(wrong_time_3) > 0:
         exist_wrong_num += 1
+        k3 = 0
+        k2 = 0
+        ex_flag = 0
 
-        if np.max(wrong_time) > 4:
-            exist_wrong_num_gen += 1
+        if len(wrong_time_1) > 0 and np.max(wrong_time_1[:, 1]) > 4:
+            exist_wrong_num_gen_dis += 1
+            ex_flag = 1
             flag1 = False
             flag2 = False
-            for i in range(len(wrong_time)):
-                if wrong_time[i] > 4:
-                    if np.max(wrong_sigma_info[:wrong_time[i]+1, 1]) > 0.5:
+            for i in range(wrong_time_1.shape[0]):
+                #如果某辆车在某时刻是wrong的，检测这辆车在之前有没有3sigma之外
+                if wrong_time_1[i,1] > 4:
+                    if np.max(wrong_sigma_info[wrong_time_1[i,0],:wrong_time_1[i,1]+1, 3]) > 0.5:
                         flag1 = True
 
-                    if np.max(wrong_sigma_info[:wrong_time[i]+1, 2]) > 0.5:
+                    if np.max(wrong_sigma_info[wrong_time_1[i,0],:wrong_time_1[i,1]+1, 4]) > 0.5:
                         flag2 = True
 
             if flag1:
-                exist_3_sigma_gen += 1
+                exist_3_sigma_gen_dis += 1
+                k3 = 1
 
             if flag2:
-                exist_2_sigma_gen += 1
+                exist_2_sigma_gen_dis += 1
+                k2 = 1
+
+
+        if len(wrong_time_2) > 0 and np.max(wrong_time_2[:, 1]) > 4:
+            exist_wrong_num_gen_ang += 1
+            ex_flag = 1
+            flag1 = False
+            flag2 = False
+            for i in range(wrong_time_2.shape[0]):
+                #如果某辆车在某时刻是wrong的，检测这辆车在之前有没有3sigma之外
+                if wrong_time_2[i,1] > 4:
+                    if np.max(wrong_sigma_info[wrong_time_2[i,0],:wrong_time_2[i,1]+1, 3]) > 0.5:
+                        flag1 = True
+
+                    if np.max(wrong_sigma_info[wrong_time_2[i,0],:wrong_time_2[i,1]+1, 4]) > 0.5:
+                        flag2 = True
+
+            if flag1:
+                exist_3_sigma_gen_ang += 1
+                k3 = 1
+
+            if flag2:
+                exist_2_sigma_gen_ang += 1
+                k2 = 1
+
+        if len(wrong_time_3) > 0:
+            exist_wrong_num_gen_poc += 1
+            ex_flag = 1
+            flag1 = False
+            flag2 = False
+            #如果此前有车在3sigma或2sigma之外
+            if np.max(wrong_sigma_info[:, :, 3]) > 0.5:
+                flag1 = True
+
+            if np.max(wrong_sigma_info[:, :, 4]) > 0.5:
+                flag2 = True
+
+            if flag1:
+                exist_3_sigma_gen_poc += 1
+                k3 = 1
+
+            if flag2:
+                exist_2_sigma_gen_poc += 1
+                k2 = 1
+
+        if k3 == 1:
+            exist_3_sigma_gen_allcase += 1
+
+        if k2 == 1:
+            exist_2_sigma_gen_allcase += 1
+
+        if ex_flag == 1:
+            exist_wrong_num_gen += 1
 
 print(exist_wrong_num)
 print(exist_wrong_num_gen)
-print(exist_3_sigma_gen)
-print(exist_2_sigma_gen)
-print(all_3_sigma)
-print(all_2_sigma)
-print(all_1_sigma)
+print(exist_wrong_num_gen_dis)
+print(exist_wrong_num_gen_ang)
+print(exist_wrong_num_gen_poc)
+print(exist_3_sigma_gen_dis)
+print(exist_2_sigma_gen_dis)
+print(exist_3_sigma_gen_ang)
+print(exist_2_sigma_gen_ang)
+print(exist_3_sigma_gen_poc)
+print(exist_2_sigma_gen_poc)
+print(exist_3_sigma_gen_allcase)
+print(exist_2_sigma_gen_allcase)
+
+
+
+
+
+# print(exist_wrong_num)
+# print(exist_wrong_num_gen)
+# print(exist_3_sigma_gen)
+# print(exist_2_sigma_gen)
+# print(all_3_sigma)
+# print(all_2_sigma)
+# print(all_1_sigma)
+
+
