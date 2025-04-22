@@ -10,14 +10,18 @@ file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/4_check_hascarin
 processed_files = os.listdir(file_save)
 
 for file in processed_files:
+    file = "27.pkl"
     data = pickle.load(open(file_save+file, "rb"))
     len_tb = data["tb_len"]
-    wrong_sigma_info = data["wrong_and_sigma"] #(car_num, time, 4)
+    distance_info = data["distance_info"] #(car_num, time, 4)
 
-    wrong_time = np.argwhere(wrong_sigma_info[:, :, 0] > 0.5)
-    
-    if len(wrong_time) > 1:
-        print(wrong_time.shape)
-        print(wrong_sigma_info[:, :, 0])
-        print(wrong_time[:,1])
-        break
+    car_dis_simu = distance_info[:, :, :2]
+
+    car_num = 6
+    disall = []
+    for i in range(6,11):
+        dis = np.linalg.norm(car_dis_simu[car_num, i + 1, :] - car_dis_simu[car_num, i, :])
+        disall.append(dis)
+
+    print(disall)
+    break

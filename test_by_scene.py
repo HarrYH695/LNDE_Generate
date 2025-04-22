@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/1/" 
     file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
-    file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/4_check_hascarinfo/"
+    file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/5_check_remove_small_dis_when_angle/"
     txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/AA_rdbt_checkscene_txt/"
 
     if not os.path.exists(file_save):
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     scenes_all = os.listdir(file_ori)
     print(len(scenes_all)) #4427
-
+    num_load = 0
     for scene in tqdm(scenes_all):
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"] #attention: the last buff is the crash buff and should not be considered
@@ -107,8 +107,9 @@ if __name__ == '__main__':
             for j in range(1, len(position)):
                 if position[j][0] == -1 or position[j-1][0] == -1:
                     continue
-                heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
+                #heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
                 dis_car = np.sqrt((position[j][1] - position[j - 1][1])**2 + (position[j][0] - position[j - 1][0])**2)
+                heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j, dis_car])
                 if dis_car >= 10:
                     scene_info["wrong_and_sigma"][i, j, 0] = 1
             
@@ -116,6 +117,8 @@ if __name__ == '__main__':
                 continue
             for j in range(len(heading) - 1):
                 if abs(heading[j][0] - heading[j + 1][0]) < np.pi / 4 or abs(2 * np.pi - abs(heading[j][0] - heading[j + 1][0])) < np.pi / 4:
+                    continue
+                if heading[j][2] < 0.5 or heading[j+1][2] < 0.5:
                     continue
                 scene_info["wrong_and_sigma"][i, heading[j + 1][1], 1] = 1
 
@@ -169,5 +172,7 @@ if __name__ == '__main__':
         #save the results
         with open(file_save + scene, "wb") as fr:
             pickle.dump(scene_info, fr)
+            num_load += 1
 
+    print(num_load)
 #python test_by_scene.py --experiment-name vis_1 --folder-idx 4 --config ./configs/AA_rdbt_inference.yml

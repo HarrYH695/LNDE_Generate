@@ -7,6 +7,7 @@ save_txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/AA_check_txts
 if not os.path.exists(save_txt_dir):
     os.makedirs(save_txt_dir)
 
+file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/5_check_remove_small_dis_when_angle/" 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/4_check_hascarinfo/"
 processed_files = os.listdir(file_save)
 print(len(processed_files)) #4427
@@ -96,10 +97,10 @@ for file in tqdm(processed_files):
             flag1 = False
             flag2 = False
             #如果此前有车在3sigma或2sigma之外
-            if np.max(wrong_sigma_info[:, :, 3]) > 0.5:
+            if np.max(wrong_sigma_info[:, -1, 3]) > 0.5:
                 flag1 = True
 
-            if np.max(wrong_sigma_info[:, :, 4]) > 0.5:
+            if np.max(wrong_sigma_info[:, -1, 4]) > 0.5:
                 flag2 = True
 
             if flag1:
@@ -119,19 +120,19 @@ for file in tqdm(processed_files):
         if ex_flag == 1:
             exist_wrong_num_gen += 1
 
-print(exist_wrong_num)
-print(exist_wrong_num_gen)
-print(exist_wrong_num_gen_dis)
-print(exist_wrong_num_gen_ang)
-print(exist_wrong_num_gen_poc)
-print(exist_3_sigma_gen_dis)
-print(exist_2_sigma_gen_dis)
-print(exist_3_sigma_gen_ang)
-print(exist_2_sigma_gen_ang)
-print(exist_3_sigma_gen_poc)
-print(exist_2_sigma_gen_poc)
-print(exist_3_sigma_gen_allcase)
-print(exist_2_sigma_gen_allcase)
+print(f"exist_wrong_num: {exist_wrong_num}")
+print(f"exist_wrong_num_gen:{exist_wrong_num_gen}")
+print(f"exist_wrong_num_gen_dis:{exist_wrong_num_gen_dis}")
+print(f"exist_wrong_num_gen_ang:{exist_wrong_num_gen_ang}")
+print(f"exist_wrong_num_gen_poc:{exist_wrong_num_gen_poc}")
+print(f"exist_3_sigma_gen_dis:{exist_3_sigma_gen_dis}")
+print(f"exist_2_sigma_gen_dis:{exist_2_sigma_gen_dis}")
+print(f"exist_3_sigma_gen_ang:{exist_3_sigma_gen_ang}")
+print(f"exist_2_sigma_gen_ang:{exist_2_sigma_gen_ang}")
+print(f"exist_3_sigma_gen_poc:{exist_3_sigma_gen_poc}")
+print(f"exist_2_sigma_gen_poc:{exist_2_sigma_gen_poc}")
+print(f"exist_3_sigma_gen_allcase:{exist_3_sigma_gen_allcase}")
+print(f"exist_2_sigma_gen_allcase:{exist_2_sigma_gen_allcase}")
 
 
 
