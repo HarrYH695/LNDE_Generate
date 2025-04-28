@@ -61,16 +61,21 @@ if __name__ == '__main__':
     file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
     txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/AA_rdbt_checkscene_txt/"
 
-    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2_vis/"
+    save_dir = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     scenes_all = os.listdir(file_ori)
     print(len(scenes_all)) #4427
 
+    num = 0
     for scene in tqdm(scenes_all):
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
-        simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
+        if len(scene_data) > 25:
+            num += 1
+            simulation_inference_model.save_check_sample_result(time_buff=scene_data[:-1], idx=scene[:-4], save_path=save_dir, with_traj=True)
+            if num == 10:
+                break
 
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/AA_rdbt_inference.yml

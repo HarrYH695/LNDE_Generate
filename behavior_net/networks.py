@@ -134,8 +134,10 @@ class PredictionsHeads(nn.Module):
         super().__init__()
         # x, y position
         self.out_net_mean = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
-        self.out_net_std = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
+        self.out_net_std = nn.Linear(in_features=h_dim, out_features=int(output_dim/2) + 1, bias=True)
+
         self.elu = torch.nn.ELU()
+        self.tanh = torch.nn.Tanh()
 
         # cos and sin heading
         self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
@@ -144,11 +146,13 @@ class PredictionsHeads(nn.Module):
 
         # shape x: batch_size x m_token x m_state
         out_mean = self.out_net_mean(x)
-        out_std = self.elu(self.out_net_std(x)) + 1
+        std_and_corr = self.out_net_std(x)
+        out_std = self.elu(std_and_corr[:, :, :-1]) + 1
+        out_corr = self.tanh(std_and_corr[:, :, -1]).unsqueeze(-1) 
 
         out_cos_sin_heading = self.out_net_cos_sin_heading(x)
 
-        return out_mean, out_std, out_cos_sin_heading
+        return out_mean, out_std, out_corr, out_cos_sin_heading
 
 
 class SafetyMapper(nn.Module):

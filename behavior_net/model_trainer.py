@@ -292,7 +292,7 @@ class Trainer(object):
             x=x_pos, pred_true=gt,
             pred_mean=pred_pos_mean, pred_std=pred_pos_std, vis_path=vis_path)
 
-    def _sampling_from_mu_and_std(self, mu, std, heading_mu):
+    def _sampling_from_mu_and_std(self, mu, std, corr, heading_mu):
 
         bs, _, _ = mu.shape
         epsilons_lat = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
@@ -330,18 +330,40 @@ class Trainer(object):
         x_input = self.x
         self.G_pred_mean, self.G_pred_std = [], []
         self.rollout_pos = []
+        #new forward, with joint gaussian
         for _ in range(rollout):
-            mu, std, cos_sin_heading = self.net_G(x_input)
-            x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
+            mu, std, corr, cos_sin_heading = self.net_G(x_input)
+            print(f"mu:{mu.shape}")
+            print(f"std:{std.shape}")
+            print(f"corr:{corr.shape}")
+            print(f"cos_sin_heading:{cos_sin_heading.shape}")
+
+            x_input = self._sampling_from_mu_and_std(mu, std, corr, cos_sin_heading)
+            print(f"x_input:{x_input.shape}")
             x_input = x_input * self.rollout_mask  # For future rollouts
             #x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input) #no safety_mapping
             self.rollout_pos.append(x_input)
             self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
             self.G_pred_std.append(std)
-            print(mu.shape)
-            print(self.G_pred_mean[0].shape)
 
             #print(f"x_input:{x_input.shape}")
+
+        #old forward, no joint gaussian
+        # for _ in range(rollout):
+        #     mu, std, cos_sin_heading = self.net_G(x_input)
+        #     print(f"mu:{mu.shape}")
+        #     print(f"std:{std.shape}")
+        #     print(f"cos_sin_heading:{cos_sin_heading.shape}")
+
+        #     x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading)
+        #     print(f"x_input:{x_input.shape}")
+        #     x_input = x_input * self.rollout_mask  # For future rollouts
+        #     #x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input) #no safety_mapping
+        #     self.rollout_pos.append(x_input)
+        #     self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
+        #     self.G_pred_std.append(std)
+
+        #     #print(f"x_input:{x_input.shape}")
 
 
     def _compute_acc(self):
@@ -441,58 +463,60 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 self._forward_pass(batch, rollout=1)
+                break
+            break
                 # update D
-                set_requires_grad(self.net_D, True)
-                self.optimizer_D.zero_grad()
-                self._compute_loss_D()
-                self._backward_D()
-                self.optimizer_D.step()
-                # update G
-                set_requires_grad(self.net_D, False)
-                self.optimizer_G.zero_grad()
-                self._compute_loss_G()
-                self._backward_G()
-                self.optimizer_G.step()
-                # evaluate acc
-                self._compute_acc()
+            #     set_requires_grad(self.net_D, True)
+            #     self.optimizer_D.zero_grad()
+            #     self._compute_loss_D()
+            #     self._backward_D()
+            #     self.optimizer_D.step()
+            #     # update G
+            #     set_requires_grad(self.net_D, False)
+            #     self.optimizer_G.zero_grad()
+            #     self._compute_loss_G()
+            #     self._backward_G()
+            #     self.optimizer_G.step()
+            #     # evaluate acc
+            #     self._compute_acc()
 
-                self._collect_running_batch_states()
-            self._collect_epoch_states()
+            #     self._collect_running_batch_states()
+            # self._collect_epoch_states()
 
-            ################## Eval ##################
-            ##########################################
-            print('Begin evaluation...')
-            self._clear_cache()
-            self.is_training = False
-            self.net_G.eval()  # Set model to eval mode
+            # ################## Eval ##################
+            # ##########################################
+            # print('Begin evaluation...')
+            # self._clear_cache()
+            # self.is_training = False
+            # self.net_G.eval()  # Set model to eval mode
 
-            # Iterate over data.
-            for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
-                with torch.no_grad():
-                    self._forward_pass(batch, rollout=1)
-                    self._compute_loss_G()
-                    self._compute_loss_D()
-                    self._compute_acc()
-                self._collect_running_batch_states()
-            self._collect_epoch_states()
+            # # Iterate over data.
+            # for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
+            #     with torch.no_grad():
+            #         self._forward_pass(batch, rollout=1)
+            #         self._compute_loss_G()
+            #         self._compute_loss_D()
+            #         self._compute_acc()
+            #     self._collect_running_batch_states()
+            # self._collect_epoch_states()
 
-            ########### Update_Checkpoints ###########
-            ##########################################
-            if (self.epoch_id + 1) % 10 == 0:
-                self._update_checkpoints(epoch_id=self.epoch_id)
+            # ########### Update_Checkpoints ###########
+            # ##########################################
+            # if (self.epoch_id + 1) % 10 == 0:
+            #     self._update_checkpoints(epoch_id=self.epoch_id)
 
-            ########### Update_LR Scheduler ##########
-            ##########################################
-            self._update_lr_schedulers()
+            # ########### Update_LR Scheduler ##########
+            # ##########################################
+            # self._update_lr_schedulers()
 
-            ############## Update logfile ############
-            ##########################################
-            self._update_logfile()
-            self._visualize_logfile()
+            # ############## Update logfile ############
+            # ##########################################
+            # self._update_logfile()
+            # self._visualize_logfile()
 
-            ########### Visualize Prediction #########
-            ##########################################
-            # self._visualize_prediction()
+            # ########### Visualize Prediction #########
+            # ##########################################
+            # # self._visualize_prediction()
 
 
 
