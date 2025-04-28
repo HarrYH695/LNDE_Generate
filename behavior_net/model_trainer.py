@@ -58,7 +58,7 @@ class Trainer(object):
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
         # define loss function and error metric
-        self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae')
+        self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_c')
         self.regression_loss_func_heading = UncertaintyRegressionLoss(choice='cos_sin_heading_mae')
 
         self.gan_loss = GANLoss(gan_mode='vanilla').to(device)
@@ -68,12 +68,13 @@ class Trainer(object):
 
         # define some other vars to record the training states
         self.running_acc_pos = []
+        self.running_acc_sample = []
         self.running_acc_heading = []
         self.running_loss_G, self.running_loss_D = [], []
         self.running_loss_G_reg_pos, self.running_loss_G_reg_heading, self.running_loss_G_adv = [], [], []
-        self.train_epoch_acc_pos, self.train_epoch_acc_heading = -1e9, -1e9
+        self.train_epoch_acc_pos, self.train_epoch_acc_sample, self.train_epoch_acc_heading = -1e9,-1e9,-1e9
         self.train_epoch_loss = 0.0
-        self.val_epoch_acc_pos, self.val_epoch_acc_heading = -1e9, -1e9
+        self.val_epoch_acc_pos, self.val_epoch_acc_sample, self.val_epoch_acc_heading = -1e9,-1e9,-1e9
         self.val_epoch_loss = 0.0
         self.epoch_to_start = 0
         self.max_num_epochs = configs["max_num_epochs"]
@@ -153,6 +154,7 @@ class Trainer(object):
     def _collect_running_batch_states(self):
 
         self.running_acc_pos.append(self.batch_acc_pos.item())
+        self.running_acc_sample.append(self.batch_acc_sample.item())
         self.running_acc_heading.append(self.batch_acc_heading.item())
         self.running_loss_G.append(self.batch_loss_G.item())
         self.running_loss_D.append(self.batch_loss_D.item())
@@ -165,30 +167,32 @@ class Trainer(object):
         else:
             m_batches = len(self.dataloaders['val'])
 
-        # if np.mod(self.batch_id, 100) == 1:
-        #     print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '
-        #           'G_adv_loss: %.5f, D_adv_loss: %.5f, running_acc_pos: %.5f, running_acc_heading: %.5f'
-        #           % (self.is_training, self.epoch_id, self.max_num_epochs-1, self.batch_id, m_batches,
-        #              self.reg_loss_position.item(), self.reg_loss_heading.item(),
-        #              self.G_adv_loss.item(), self.D_adv_loss.item(), np.mean(self.running_acc_pos),
-        #              np.mean(self.running_acc_heading)))
+        if np.mod(self.batch_id, 100) == 1:
+            print('Is_training: %s. epoch [%d,%d], batch [%d,%d], reg_loss_pos: %.5f, reg_loss_heading: %.5f, '
+                  'G_adv_loss: %.5f, D_adv_loss: %.5f, running_acc_pos: %.5f, running_acc_heading: %.5f'
+                  % (self.is_training, self.epoch_id, self.max_num_epochs-1, self.batch_id, m_batches,
+                     self.reg_loss_position.item(), self.reg_loss_heading.item(),
+                     self.G_adv_loss.item(), self.D_adv_loss.item(), np.mean(self.running_acc_pos),
+                     np.mean(self.running_acc_heading)))
 
 
     def _collect_epoch_states(self):
 
         if self.is_training:
             self.train_epoch_acc_pos = np.mean(self.running_acc_pos).item()
+            self.train_epoch_acc_sample = np.mean(self.running_acc_sample).item()
             self.train_epoch_acc_heading = np.mean(self.running_acc_heading).item()
             self.train_epoch_loss_G = np.mean(self.running_loss_G).item()
             self.train_epoch_loss_D = np.mean(self.running_loss_D).item()
             self.train_epoch_loss_G_reg_pos = np.mean(self.running_loss_G_reg_pos).item()
             self.train_epoch_loss_G_reg_heading = np.mean(self.running_loss_G_reg_heading).item()
             self.train_epoch_loss_G_adv = np.mean(self.running_loss_G_adv).item()
-            print('Training, Epoch %d / %d, epoch_loss_G= %.5f, epoch_loss_D= %.5f, epoch_acc_pos= %.5f, epoch_acc_heading= %.5f' %
+            print('Training, Epoch %d / %d, epoch_loss_G= %.5f, epoch_loss_D= %.5f, epoch_acc_pos= %.5f, epoch_acc_sample= %.5f, epoch_acc_heading= %.5f' %
                   (self.epoch_id, self.max_num_epochs-1,
-                   self.train_epoch_loss_G, self.train_epoch_loss_D, self.train_epoch_acc_pos, self.train_epoch_acc_heading))
+                   self.train_epoch_loss_G, self.train_epoch_loss_D, self.train_epoch_acc_pos, self.train_epoch_acc_sample, self.train_epoch_acc_heading))
 
             self.writer.add_scalar("Accuracy/train_pos", self.train_epoch_acc_pos, self.epoch_id)
+            self.writer.add_scalar("Accuracy/train_sample", self.train_epoch_acc_sample, self.epoch_id)
             self.writer.add_scalar("Accuracy/train_heading", self.train_epoch_acc_heading, self.epoch_id)
             self.writer.add_scalar("Loss/train_G", self.train_epoch_loss_G, self.epoch_id)
             self.writer.add_scalar("Loss/train_D", self.train_epoch_loss_D, self.epoch_id)
@@ -197,17 +201,19 @@ class Trainer(object):
             self.writer.add_scalar("Loss/train_G_adv", self.train_epoch_loss_G_adv, self.epoch_id)
         else:
             self.val_epoch_acc_pos = np.mean(self.running_acc_pos).item()
+            self.val_epoch_acc_sample = np.mean(self.running_acc_sample).item()
             self.val_epoch_acc_heading = np.mean(self.running_acc_heading).item()
             self.val_epoch_loss_G = np.mean(self.running_loss_G).item()
             self.val_epoch_loss_D = np.mean(self.running_loss_D).item()
             self.val_epoch_loss_G_reg_pos = np.mean(self.running_loss_G_reg_pos).item()
             self.val_epoch_loss_G_reg_heading = np.mean(self.running_loss_G_reg_heading).item()
             self.val_epoch_loss_G_adv = np.mean(self.running_loss_G_adv).item()
-            print('Validation, Epoch %d / %d, epoch_loss_G= %.5f, epoch_loss_D= %.5f, epoch_acc_pos= %.5f, epoch_acc_heading= %.5f' %
+            print('Validation, Epoch %d / %d, epoch_loss_G= %.5f, epoch_loss_D= %.5f, epoch_acc_pos= %.5f, epoch_acc_sample= %.5f, epoch_acc_heading= %.5f' %
                   (self.epoch_id, self.max_num_epochs - 1,
-                   self.val_epoch_loss_G, self.val_epoch_loss_D, self.val_epoch_acc_pos, self.val_epoch_acc_heading))
+                   self.val_epoch_loss_G, self.val_epoch_loss_D, self.val_epoch_acc_pos, self.val_epoch_acc_sample, self.val_epoch_acc_heading))
 
             self.writer.add_scalar("Accuracy/val_pos", self.val_epoch_acc_pos, self.epoch_id)
+            self.writer.add_scalar("Accuracy/val_sample", self.val_epoch_acc_sample, self.epoch_id)
             self.writer.add_scalar("Accuracy/val_heading", self.val_epoch_acc_heading, self.epoch_id)
             self.writer.add_scalar("Loss/val_G", self.val_epoch_loss_G, self.epoch_id)
             self.writer.add_scalar("Loss/val_D", self.val_epoch_loss_D, self.epoch_id)
@@ -294,19 +300,23 @@ class Trainer(object):
 
     def _sampling_from_mu_and_std(self, mu, std, corr, heading_mu):
 
-        bs, _, _ = mu.shape
+        bs, _, _ = mu.shape #[bs, 32, 2]
         epsilons_lat = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
         epsilons_lon = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
-        epsilons_lat = torch.reshape(epsilons_lat, [bs, -1, 1])
-        epsilons_lon = torch.reshape(epsilons_lon, [bs, -1, 1])
+        epsilons_1 = torch.reshape(epsilons_lat, [bs, -1, 1])
+        epsilons_2 = torch.reshape(epsilons_lon, [bs, -1, 1])
 
+        #[bs, 32, 1]
         lat_mean = mu[:, :, 0:self.pred_length]
         lon_mean = mu[:, :, self.pred_length:]
         lat_std = std[:, :, 0:self.pred_length]
         lon_std = std[:, :, self.pred_length:]
 
-        lat = lat_mean + epsilons_lat * lat_std
-        lon = lon_mean + epsilons_lon * lon_std
+
+        lat = lat_mean + lat_std * epsilons_1
+        lon = lon_mean + lon_std * epsilons_1 * corr + lon_std * torch.sqrt(1 - corr ** 2) * epsilons_2
+        # print(f"lat:{lat.shape}")
+        # print(f"lon:{lon.shape}")
 
         return torch.cat([lat, lon, heading_mu], dim=-1)
 
@@ -333,13 +343,13 @@ class Trainer(object):
         #new forward, with joint gaussian
         for _ in range(rollout):
             mu, std, corr, cos_sin_heading = self.net_G(x_input)
-            print(f"mu:{mu.shape}")
-            print(f"std:{std.shape}")
-            print(f"corr:{corr.shape}")
-            print(f"cos_sin_heading:{cos_sin_heading.shape}")
+            # print(f"mu:{mu.shape}")
+            # print(f"std:{std.shape}")
+            # print(f"corr:{corr.shape}")
+            # print(f"cos_sin_heading:{cos_sin_heading.shape}")
 
             x_input = self._sampling_from_mu_and_std(mu, std, corr, cos_sin_heading)
-            print(f"x_input:{x_input.shape}")
+            #print(f"x_input:{x_input.shape}")
             x_input = x_input * self.rollout_mask  # For future rollouts
             #x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input) #no safety_mapping
             self.rollout_pos.append(x_input)
@@ -370,6 +380,7 @@ class Trainer(object):
         G_pred_mean_at_step0 = self.G_pred_mean[0]
 
         G_pred_mean_pos_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)]
+        sample_at_stpe0 = self.rollout_pos[0][:, :, :int(self.output_dim / 2)]
         G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
 
         gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
@@ -377,24 +388,26 @@ class Trainer(object):
 
         self.batch_acc_pos = self.accuracy_metric_pos(G_pred_mean_pos_at_step0.detach(), gt_pos.detach(), mask=mask_pos > 0)
         self.batch_acc_heading = self.accuracy_metric_heading(G_pred_cos_sin_heading_at_step0.detach(), gt_cos_sin_heading.detach(), mask=mask_heading > 0)
+        self.batch_acc_sample = self.accuracy_metric_pos(sample_at_stpe0.detach(), gt_pos.detach(), mask=mask_pos > 0)
 
     def _compute_loss_G(self):
 
         # reg loss (between pred0 and gt)
         G_pred_mean_at_step0 = self.G_pred_mean[0]
-        G_pred_std_at_step0 = self.G_pred_std[0]
+        #G_pred_std_at_step0 = self.G_pred_std[0]
+        sample_at_step0 = self.rollout_pos[0]
 
 
         G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
-        G_pred_std_pos_at_step0 = G_pred_std_at_step0
+        #G_pred_std_pos_at_step0 = G_pred_std_at_step0
 
         gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
         gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-        self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos)
+        self.reg_loss_position = self.regression_loss_func_pos(y_pred_mean=sample_at_step0[:, :, :int(self.output_dim / 2)], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
         self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
-        D_pred_fake = self.net_D(self.G_pred_mean[0])
+        D_pred_fake = self.net_D(sample_at_step0)
         #print(f"D_pred_fake:{D_pred_fake.shape}")
         # Filter out ghost vehicles
         # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
@@ -410,7 +423,7 @@ class Trainer(object):
         # print(f"self.G_pred_mean[0]:{self.G_pred_mean[0].shape}")
         # print(f"self.gt:{self.gt.shape}")
 
-        D_pred_fake = self.net_D(self.G_pred_mean[0].detach())
+        D_pred_fake = self.net_D(self.rollout_pos[0].detach())
         D_pred_real = self.net_D(self.gt.detach())
 
         # print(f"D_pred_fake:{D_pred_fake.shape}")
@@ -463,60 +476,61 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 self._forward_pass(batch, rollout=1)
-                break
-            break
+                
                 # update D
-            #     set_requires_grad(self.net_D, True)
-            #     self.optimizer_D.zero_grad()
-            #     self._compute_loss_D()
-            #     self._backward_D()
-            #     self.optimizer_D.step()
-            #     # update G
-            #     set_requires_grad(self.net_D, False)
-            #     self.optimizer_G.zero_grad()
-            #     self._compute_loss_G()
-            #     self._backward_G()
-            #     self.optimizer_G.step()
-            #     # evaluate acc
-            #     self._compute_acc()
+                set_requires_grad(self.net_D, True)
+                self.optimizer_D.zero_grad()
+                self._compute_loss_D()
+                self._backward_D()
+                self.optimizer_D.step()
+                # update G
+                set_requires_grad(self.net_D, False)
+                self.optimizer_G.zero_grad()
+                self._compute_loss_G()
+                self._backward_G()
+                self.optimizer_G.step()
+                # evaluate acc
+                self._compute_acc()
 
-            #     self._collect_running_batch_states()
-            # self._collect_epoch_states()
+                self._collect_running_batch_states()
+            self._collect_epoch_states()
+
 
             # ################## Eval ##################
-            # ##########################################
-            # print('Begin evaluation...')
-            # self._clear_cache()
-            # self.is_training = False
-            # self.net_G.eval()  # Set model to eval mode
+            ##########################################
+            print('Begin evaluation...')
+            self._clear_cache()
+            self.is_training = False
+            self.net_G.eval()  # Set model to eval mode
 
-            # # Iterate over data.
-            # for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
-            #     with torch.no_grad():
-            #         self._forward_pass(batch, rollout=1)
-            #         self._compute_loss_G()
-            #         self._compute_loss_D()
-            #         self._compute_acc()
-            #     self._collect_running_batch_states()
-            # self._collect_epoch_states()
+            # Iterate over data.
+            for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
+                with torch.no_grad():
+                    self._forward_pass(batch, rollout=1)
+                    self._compute_loss_G()
+                    self._compute_loss_D()
+                    self._compute_acc()
+                self._collect_running_batch_states()
+            self._collect_epoch_states()
 
-            # ########### Update_Checkpoints ###########
-            # ##########################################
-            # if (self.epoch_id + 1) % 10 == 0:
-            #     self._update_checkpoints(epoch_id=self.epoch_id)
+            ########### Update_Checkpoints ###########
+            ##########################################
+            if (self.epoch_id + 1) % 10 == 0:
+                self._update_checkpoints(epoch_id=self.epoch_id)
 
-            # ########### Update_LR Scheduler ##########
-            # ##########################################
-            # self._update_lr_schedulers()
+            ########### Update_LR Scheduler ##########
+            ##########################################
+            self._update_lr_schedulers()
 
-            # ############## Update logfile ############
-            # ##########################################
-            # self._update_logfile()
-            # self._visualize_logfile()
+            ############## Update logfile ############
+            ##########################################
+            self._update_logfile()
+            self._visualize_logfile()
 
-            # ########### Visualize Prediction #########
-            # ##########################################
-            # # self._visualize_prediction()
+            ########### Visualize Prediction #########
+            ##########################################
+            # self._visualize_prediction()
 
 
+        self.writer.close()
 
