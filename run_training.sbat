@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#SBATCH --job-name=inference
+#SBATCH --account=mcity_project
+#SBATCH --partition=mcity_project
+#SBATCH --time=0-5:00:00 
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=4
+#SBATCH --tasks-per-node=1
+#SBATCH --gpus-per-node=l40s:1
+#SBATCH --mem=10GB
+#SBATCH --mail-type=BEGIN,END,FAIL 
+#SBATCH --output=/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results/training/sbat_record/%x-%j.log
+
+# Running scripts, an example bash script is attached below:
+source /sw/pkgs/arc/python3.10-anaconda/2023.03/etc/profile.d/conda.sh
+conda activate NNDEN1
+cd /home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/
+srun --cpu-bind=cores python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag

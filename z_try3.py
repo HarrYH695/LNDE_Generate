@@ -1,6 +1,6 @@
 import numpy as np
 import torch
+import os
 
-a = torch.zeros((32, 32, 2))
-b = a[:, :, 1:]
-print(b.shape)
+file_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_Trial_1/1/"
+print(len(os.listdir(file_path)))
