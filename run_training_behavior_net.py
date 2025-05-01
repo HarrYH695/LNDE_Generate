@@ -61,4 +61,4 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-#python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_baseline_1
+#python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_trial_2
