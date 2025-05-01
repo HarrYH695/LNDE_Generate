@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
 
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_baseline/1/" 
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_Trial_2/1/" 
     file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
     txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/AA_rdbt_checkscene_txt/"
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     for scene in tqdm(scenes_all):
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
-        if len(scene_data) >= 10:
+        if len(scene_data) >= 8:
             num += 1
             simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
             if num == 10:
