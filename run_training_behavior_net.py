@@ -62,3 +62,4 @@ if __name__ == '__main__':
     m.train_models()
 
 #python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_trial_2
+#2: corr和std分离 3:mae->mse

@@ -58,7 +58,7 @@ class Trainer(object):
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
         # define loss function and error metric
-        self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_c')
+        self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mse_c')
         self.regression_loss_func_heading = UncertaintyRegressionLoss(choice='cos_sin_heading_mae')
 
         self.gan_loss = GANLoss(gan_mode='vanilla').to(device)
