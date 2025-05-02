@@ -1,6 +1,6 @@
 #################### General settings ####################
 # Device settings
-use_gpu: True  # whether to use the gpu
+use_gpu: False  # whether to use the gpu
 
 # Inference simulation settings
 sim_wall_time: 36  # unit: s. The simulation wall time. The simulation will stop if the wall time is reached.

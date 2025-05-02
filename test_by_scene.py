@@ -55,12 +55,12 @@ if __name__ == '__main__':
     shutil.copyfile(args.config, save_path)
 
     # Initialize the simulation inference model.
-    simulation_inference_model = SimulationInference(configs=configs)
+    #simulation_inference_model = SimulationInference(configs=configs)
 
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/1/" 
-    file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
-    file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/5_check_remove_small_dis_when_angle/"
-    txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/AA_rdbt_checkscene_txt/"
+    dir_name = "rD_Trial_3"
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
+    file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
+    file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 
     if not os.path.exists(file_save):
         os.makedirs(file_save)
@@ -130,44 +130,44 @@ if __name__ == '__main__':
             scene_info["wrong_and_sigma"][0, scene_tb_length - 1, 2] = 1
 
         #then check if out of 3 sigma, 2sigma, 1sigma; record the mean and std in both directions
-        for i in range(scene_tb_length - 5):
-            zs, yx = simulation_inference_model.check_one_sample(scene_data[i:i+5])
-            pred_range = {}
-            for car in zs:
-                pred_range[int(car.id)] = []
-                pred_range[int(car.id)].append([car.location.x, car.location.y])
+        # for i in range(scene_tb_length - 5):
+        #     zs, yx = simulation_inference_model.check_one_sample(scene_data[i:i+5])
+        #     pred_range = {}
+        #     for car in zs:
+        #         pred_range[int(car.id)] = []
+        #         pred_range[int(car.id)].append([car.location.x, car.location.y])
 
-            for car in yx:
-                pred_range[int(car.id)].append([car.location.x, car.location.y])
+        #     for car in yx:
+        #         pred_range[int(car.id)].append([car.location.x, car.location.y])
             
-            tb_to_compare = scene_data[i+5]
-            for car in tb_to_compare:
-                car_x = car.location.x
-                car_y = car.location.y
+        #     tb_to_compare = scene_data[i+5]
+        #     for car in tb_to_compare:
+        #         car_x = car.location.x
+        #         car_y = car.location.y
 
-                if int(car.id) in pred_range:
-                    jdx = vid_all.index(int(car.id))
-                    car_zs = pred_range[int(car.id)][0]
-                    car_yx = pred_range[int(car.id)][-1]
+        #         if int(car.id) in pred_range:
+        #             jdx = vid_all.index(int(car.id))
+        #             car_zs = pred_range[int(car.id)][0]
+        #             car_yx = pred_range[int(car.id)][-1]
 
-                    # print(car_zs)
-                    # print(car_yx)
-                    # print(car_x, car_y)
-                    std_x = (car_yx[0] - car_zs[0]) / 6
-                    std_y = (car_yx[1] - car_zs[1]) / 6
-                    mean_x = (car_yx[0] + car_zs[0]) / 2
-                    mean_y = (car_yx[1] + car_zs[1]) / 2
+        #             # print(car_zs)
+        #             # print(car_yx)
+        #             # print(car_x, car_y)
+        #             std_x = (car_yx[0] - car_zs[0]) / 6
+        #             std_y = (car_yx[1] - car_zs[1]) / 6
+        #             mean_x = (car_yx[0] + car_zs[0]) / 2
+        #             mean_y = (car_yx[1] + car_zs[1]) / 2
                     
-                    if np.abs(car_x - mean_x) > 3 * std_x or np.abs(car_y - mean_y) > 3 * std_y:
-                        scene_info["wrong_and_sigma"][jdx, i+5, 3] = 1
+        #             if np.abs(car_x - mean_x) > 3 * std_x or np.abs(car_y - mean_y) > 3 * std_y:
+        #                 scene_info["wrong_and_sigma"][jdx, i+5, 3] = 1
 
-                    if np.abs(car_x - mean_x) > 2 * std_x or np.abs(car_y - mean_y) > 2 * std_y:
-                        scene_info["wrong_and_sigma"][jdx, i+5, 4] = 1
+        #             if np.abs(car_x - mean_x) > 2 * std_x or np.abs(car_y - mean_y) > 2 * std_y:
+        #                 scene_info["wrong_and_sigma"][jdx, i+5, 4] = 1
 
-                    if np.abs(car_x - mean_x) > std_x or np.abs(car_y - mean_y) > std_y:
-                        scene_info["wrong_and_sigma"][jdx, i+5, 5] = 1
+        #             if np.abs(car_x - mean_x) > std_x or np.abs(car_y - mean_y) > std_y:
+        #                 scene_info["wrong_and_sigma"][jdx, i+5, 5] = 1
 
-                    scene_info["distance_info"][jdx, i+5, 2:] = np.array([mean_x, std_x, mean_y, std_y])
+        #             scene_info["distance_info"][jdx, i+5, 2:] = np.array([mean_x, std_x, mean_y, std_y])
 
         #save the results
         with open(file_save + scene, "wb") as fr:
@@ -175,4 +175,4 @@ if __name__ == '__main__':
             num_load += 1
 
     print(num_load)
-#python test_by_scene.py --experiment-name vis_1 --folder-idx 4 --config ./configs/AA_rdbt_inference.yml
+#python test_by_scene.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

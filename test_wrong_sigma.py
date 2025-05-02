@@ -3,18 +3,15 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-save_txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/AA_check_txts/"
-if not os.path.exists(save_txt_dir):
-    os.makedirs(save_txt_dir)
+dir_name = "rD_Trial_3"
+# dir_name = "rD_baseline"
 
-file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/5_check_remove_small_dis_when_angle/" 
-file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/4_check_hascarinfo/"
+file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)
-print(len(processed_files)) #4427
 
-file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
-case_files = os.listdir(file_case)
-print(len(case_files)) 
+file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
+# case_files = os.listdir(file_case)
+# print(len(case_files)) 
 
 exist_wrong_num = 0
 exist_wrong_num_gen = 0
@@ -120,6 +117,7 @@ for file in tqdm(processed_files):
         if ex_flag == 1:
             exist_wrong_num_gen += 1
 
+print(dir_name)
 print(f"exist_wrong_num: {exist_wrong_num}")
 print(f"exist_wrong_num_gen:{exist_wrong_num_gen}")
 print(f"exist_wrong_num_gen_dis:{exist_wrong_num_gen_dis}")
@@ -133,17 +131,5 @@ print(f"exist_3_sigma_gen_poc:{exist_3_sigma_gen_poc}")
 print(f"exist_2_sigma_gen_poc:{exist_2_sigma_gen_poc}")
 print(f"exist_3_sigma_gen_allcase:{exist_3_sigma_gen_allcase}")
 print(f"exist_2_sigma_gen_allcase:{exist_2_sigma_gen_allcase}")
-
-
-
-
-
-# print(exist_wrong_num)
-# print(exist_wrong_num_gen)
-# print(exist_3_sigma_gen)
-# print(exist_2_sigma_gen)
-# print(all_3_sigma)
-# print(all_2_sigma)
-# print(all_1_sigma)
 
 

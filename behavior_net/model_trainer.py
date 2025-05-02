@@ -59,7 +59,7 @@ class Trainer(object):
 
         # define loss function and error metric
         self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mse_c')
-        self.regression_loss_func_heading = UncertaintyRegressionLoss(choice='cos_sin_heading_mae')
+        self.regression_loss_func_heading = UncertaintyRegressionLoss(choice='mse_c')
 
         self.gan_loss = GANLoss(gan_mode='vanilla').to(device)
 
@@ -422,13 +422,13 @@ class Trainer(object):
         # new forward, with joint gaussian
         for _ in range(rollout):
             mu, std, corr, cos_sin_heading = self.net_G(x_input)
-            print(f"mu:{mu.shape}")
-            print(f"std:{std.shape}")
-            print(f"corr:{corr.shape}")
-            print(f"cos_sin_heading:{cos_sin_heading.shape}")
+            # print(f"mu:{mu.shape}")
+            # print(f"std:{std.shape}")
+            # print(f"corr:{corr.shape}")
+            # print(f"cos_sin_heading:{cos_sin_heading.shape}")
 
             x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
-            print(f"x_input:{x_input.shape}")
+            #print(f"x_input:{x_input.shape}")
             x_input = x_input * self.rollout_mask  # For future rollouts
             #x_input = self.net_safety_mapper.safety_mapper_in_the_training_loop_forward(x_input) #no safety_mapping
             self.rollout_pos.append(x_input)
