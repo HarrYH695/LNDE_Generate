@@ -89,7 +89,8 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_Trial_2/1/"
+    dir_name = "rD_Trial_2r"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/"
     # if not os.path.exists(save_sim_path):
     #     os.makedirs(save_sim_path)
     # coll_num = 0
@@ -100,11 +101,11 @@ if __name__ == '__main__':
     # print(f"Find collision num: {coll_num}")
 
     #Get the visual of 1000 results
-    save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_Trial_2/2/"
+    save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
     if not os.path.exists(save_path_1):
         os.makedirs(save_path_1)
     
-    save_path_2 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_Trial_2/3/"
+    save_path_2 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/3/"
     if not os.path.exists(save_path_2):
         os.makedirs(save_path_2)
     

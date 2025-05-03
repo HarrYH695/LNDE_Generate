@@ -3,7 +3,7 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-dir_name = "rD_Trial_3"
+dir_name = "rD_Trial_2r"
 # dir_name = "rD_baseline"
 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"

@@ -683,7 +683,7 @@ class SimulationInference(object):
                     infos["states_considered"] = states_to_be_considered[::-1]
                     idx_before_start = np.max(len(self.one_sim_TIME_BUFF) + final_idx - 5, 0)
                     infos["states_before"] = self.one_sim_TIME_BUFF[idx_before_start:final_idx] # to check all the states considered for 3-sigma
-
+                    infos['crash_step'] = i + 1
                     with open(result_dir + f"{num_idx}.pkl", "wb") as f:
                         pickle.dump(infos, f)
 

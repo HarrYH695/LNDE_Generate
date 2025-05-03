@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name=training_4
+#SBATCH --job-name=training_baseline_3
 #SBATCH --account=mcity_project
 #SBATCH --partition=mcity_project
-#SBATCH --time=0-4:00:00 
+#SBATCH --time=0-8:00:00 
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8
 #SBATCH --tasks-per-node=1
@@ -16,4 +16,4 @@
 source /sw/pkgs/arc/python3.10-anaconda/2023.03/etc/profile.d/conda.sh
 conda activate NNDEN1
 cd /home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/
-srun --cpu-bind=cores python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_trial_4
+srun --cpu-bind=cores python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_baseline_3

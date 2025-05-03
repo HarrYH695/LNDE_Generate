@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     #simulation_inference_model = SimulationInference(configs=configs)
 
-    dir_name = "rD_Trial_3"
+    dir_name = "rD_Trial_2r"
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
     file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
     file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                     vid_all.append(car_id)
         vid_all = sorted(vid_all)
 
-        scene_info["wrong_and_sigma"] = np.zeros((len(vid_all), scene_tb_length, 6))
+        scene_info["wrong_and_sigma"] = np.zeros((len(vid_all), scene_tb_length, 7))
         scene_info["distance_info"] = -np.ones((len(vid_all), scene_tb_length, 6))
 
         all_cars_posi = -np.ones((len(vid_all), scene_tb_length, 2))
@@ -128,6 +128,9 @@ if __name__ == '__main__':
         poc_final = np.sum(poc_tmp, axis=1)
         if np.max(poc_final) < 0.999:
             scene_info["wrong_and_sigma"][0, scene_tb_length - 1, 2] = 1
+        if np.max(poc_final) < 0.5:
+            scene_info["wrong_and_sigma"][0, scene_tb_length - 1, -1] = 1
+
 
         #then check if out of 3 sigma, 2sigma, 1sigma; record the mean and std in both directions
         # for i in range(scene_tb_length - 5):
