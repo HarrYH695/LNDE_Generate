@@ -111,7 +111,7 @@ class TrafficSimulator(object):
         # print(f"corr:{corr.shape}")
 
         pred_mean_pos = mean_pos.detach().cpu().numpy()[0, :, :]
-        pred_std_pos = std_pos.detach().cpu().numpy()[0, :, :]
+        pred_std_pos = np.sqrt(std_pos.detach().cpu().numpy()[0, :, :])
         pred_corr = corr.detach().cpu().numpy()[0, :, :].astype(np.float64)
         pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
         pred_vid = buff_vid
@@ -136,7 +136,7 @@ class TrafficSimulator(object):
         pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std, pred_corr)
         # print(f"pred_lat:{pred_lat.shape}")
         # print(f"pred_lon:{pred_lon.shape}")
-        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon
+        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std), np.mean(pred_corr)
 
 
 
@@ -178,7 +178,8 @@ class TrafficSimulator(object):
 
         # pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
 
-        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon
+        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std)
+
 
     def do_safety_mapping(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, output_delta_position_mask=False):
         # Neural safety mapping
@@ -196,6 +197,7 @@ class TrafficSimulator(object):
             return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, delta_position_mask
 
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid
+
 
     def sampling(self, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std, pred_corr):
         """
