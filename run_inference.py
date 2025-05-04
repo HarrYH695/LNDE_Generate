@@ -109,7 +109,7 @@ if __name__ == '__main__':
     if not os.path.exists(save_path_2):
         os.makedirs(save_path_2)
     
-    for i in tqdm(range(3)):
+    for i in tqdm(range(10000)):
         if os.path.exists(save_sim_path + f"{i}.pkl"):
             with open(save_sim_path + f"{i}.pkl", "rb") as f:
                 infos = pickle.load(f)
