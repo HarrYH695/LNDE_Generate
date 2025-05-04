@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=inference_2c
+#SBATCH --job-name=inference_2r2_p
 #SBATCH --account=mcity_project
 #SBATCH --partition=mcity_project
 #SBATCH --time=0-12:00:00 
