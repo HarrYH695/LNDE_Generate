@@ -5,36 +5,36 @@
 2636.pkl
 8680.pkl
 4345.pkl
-7184.pkl
-5819.pkl
+7184.pkl # small shake
+5819.pkl # check
 1405.pkl
 2686.pkl
-2160.pkl
+2160.pkl # small shake
 1272.pkl
-8019.pkl
+8019.pkl # small shake
 135.pkl
 5042.pkl
-4218.pkl
+4218.pkl # poc ok
 3279.pkl
 9838.pkl
-9800.pkl
-6852.pkl
+9800.pkl # check
+6852.pkl # small shake
 7841.pkl
 9242.pkl
 8024.pkl
-105.pkl
+105.pkl # small shake
 3167.pkl
-8183.pkl
+8183.pkl # small shake
 691.pkl
 9219.pkl
-7000.pkl
+7000.pkl # small shake
 5804.pkl
 2349.pkl
 7381.pkl
 4196.pkl
-8431.pkl
-3011.pkl
-3371.pkl
+8431.pkl # true, but angle check again
+3011.pkl # small shake
+3371.pkl # small shake *
 1922.pkl
 4790.pkl
 8632.pkl
