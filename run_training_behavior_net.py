@@ -61,12 +61,15 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_baseline_3
+# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_trial_2r_woD
 # 2: corr和std分离 
 # 3:mae->mse   
 # 2_r and 2r2: repeat 2 , 2r2 record std and corr
 # 4: all mse_c in loss
 # 2_c : use square rather than elu()+1
+# 2_s : softplus() # std**2.
+# 2r_woD: 2r + no adv loss
+# 2c_woD: 2c + no adv loss
 
 # baseline_2 : only add vae
 # baseline_3 : mse

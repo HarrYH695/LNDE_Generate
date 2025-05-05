@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=inference_2r2_p
+#SBATCH --job-name=inference_2s_woD
 #SBATCH --account=mcity_project
 #SBATCH --partition=mcity_project
-#SBATCH --time=0-12:00:00 
+#SBATCH --time=0-4:00:00 
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=8
 #SBATCH --tasks-per-node=1
-#SBATCH --gpus-per-node=l40s:1
+#SBATCH --gpus-per-node=0
 #SBATCH --mem=24GB
 #SBATCH --mail-type=BEGIN,END,FAIL 
 #SBATCH --output=/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results/training/sbat_record/%x-%j.log

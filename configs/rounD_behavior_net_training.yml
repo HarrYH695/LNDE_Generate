@@ -13,7 +13,7 @@ batch_size: 32
 lr: 1.0e-4  # learning rate
 lr_decay_step_size: 300  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.
-max_num_epochs: 600  # maximum training epochs
+max_num_epochs: 500  # maximum training epochs
 dataloader_num_workers: 8  # num_workers
 
 # Pre-trained safety mapping network

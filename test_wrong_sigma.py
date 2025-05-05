@@ -3,8 +3,8 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-dir_name = "rD_Trial_2r"
-# dir_name = "rD_baseline"
+dir_name = "rD_baseline_2"
+dir_name = "rD_Trial_2c"
 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)
@@ -12,6 +12,8 @@ processed_files = os.listdir(file_save)
 file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
 # case_files = os.listdir(file_case)
 # print(len(case_files)) 
+
+dir_txt_save = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/rD_check_txts/"
 
 exist_wrong_num = 0
 exist_wrong_num_gen = 0
@@ -116,8 +118,13 @@ for file in tqdm(processed_files):
 
         if ex_flag == 1:
             exist_wrong_num_gen += 1
+            with open(dir_txt_save + dir_name + ".txt", "a+") as ft:
+                ft.write(file)
+                ft.write("\n")
 
 print(dir_name)
+print(f"All data:{len(processed_files)}")
+print("----------------------------------")
 print(f"exist_wrong_num: {exist_wrong_num}")
 print(f"exist_wrong_num_gen:{exist_wrong_num_gen}")
 print(f"exist_wrong_num_gen_dis:{exist_wrong_num_gen_dis}")
@@ -133,3 +140,4 @@ print(f"exist_3_sigma_gen_allcase:{exist_3_sigma_gen_allcase}")
 print(f"exist_2_sigma_gen_allcase:{exist_2_sigma_gen_allcase}")
 
 
+# python test_wrong_sigma.py

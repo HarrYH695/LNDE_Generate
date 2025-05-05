@@ -124,6 +124,9 @@ class TrafficSimulator(object):
         pred_lon_mean = pred_mean_pos[:, self.pred_length:].astype(np.float64)
         pred_lat_std = pred_std_pos[:, 0:self.pred_length].astype(np.float64)
         pred_lon_std = pred_std_pos[:, self.pred_length:].astype(np.float64)
+        # pred_lat_std = np.sqrt(pred_std_pos[:, 0:self.pred_length]).astype(np.float64)
+        # pred_lon_std = np.sqrt(pred_std_pos[:, self.pred_length:]).astype(np.float64)
+
         pred_cos_heading = pred_cos_sin_heading[:, 0:self.pred_length].astype(np.float64)
         pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)
 

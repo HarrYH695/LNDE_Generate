@@ -139,6 +139,7 @@ class PredictionsHeads(nn.Module):
 
         self.elu = torch.nn.ELU()
         self.tanh = torch.nn.Tanh()
+        self.softplus = torch.nn.Softplus()
         
         # cos and sin heading
         self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
@@ -150,8 +151,10 @@ class PredictionsHeads(nn.Module):
         out_std_raw = self.out_net_std(x)
         corr = self.out_net_corr(x)
 
-        out_std = self.elu(out_std_raw) + 1
+        #out_std = self.elu(out_std_raw) + 1
         #out_std = out_std_raw ** 2
+        out_std = self.softplus(out_std_raw)
+        
         out_corr = self.tanh(corr)
         out_cos_sin_heading = self.out_net_cos_sin_heading(x)
 

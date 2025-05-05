@@ -57,25 +57,22 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
 
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/rD_Trial_2/1/" 
-    file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/AA_Trial_1/2/"
-    txt_dir = "/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/AA_rdbt_checkscene_txt/"
-
-    save_dir = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_videos/"
+    dir_name = "rD_Trial_2c"
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
+    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/scene_videos/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     scenes_all = os.listdir(file_ori)
-    print(len(scenes_all)) #4427
+    print(len(scenes_all)) 
 
     num = 0
-    for scene in tqdm(scenes_all):
+    for scene in tqdm(scenes_all[9800:]):
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
-        if len(scene_data) >= 8:
+        if len(scene_data) >= 7:
             num += 1
             simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
-            if num == 10:
-                break
-
+    
+    print(num)
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

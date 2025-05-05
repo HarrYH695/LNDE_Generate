@@ -652,7 +652,7 @@ class SimulationInference(object):
         std_y_all = []
         corr_all = []
         for i in range(max_time):
-            TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+            TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y, pred_corr = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
             TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
             traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
@@ -662,7 +662,7 @@ class SimulationInference(object):
 
             std_x_all.append(std_x)
             std_y_all.append(std_y)
-            #corr_all.append(pred_corr)
+            corr_all.append(pred_corr)
 
             if self.one_sim_colli_flag:
                 #infos["inference_step"] = i + 1
@@ -693,7 +693,7 @@ class SimulationInference(object):
                     infos['crash_step'] = i + 1
                     infos["std_x"] = std_x_all
                     infos["std_y"] = std_y_all
-                    #infos["corr"] = corr_all
+                    infos["corr"] = corr_all
 
                     with open(result_dir + f"{num_idx}.pkl", "wb") as f:
                         pickle.dump(infos, f)
