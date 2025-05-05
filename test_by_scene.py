@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     #simulation_inference_model = SimulationInference(configs=configs)
 
-    dir_name = "rD_Trial_2c_woD"
+    dir_name = "rD_Trial_2r"
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
     file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
     file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         #then check if the time buff is "wrong". we want to know if there is out of 3 sigma or 2 sigma before the wrong data.abs
         #save the out of x-sigma and wrong time buff in terms of every scene.
         scene_info = {}
-        scene_tb_length = len(scene_data) - 1
+        scene_tb_length = len(scene_data)
         scene_info["tb_len"] = scene_tb_length
         
         #Check out the wrong data

@@ -3,8 +3,8 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-dir_name = "rD_baseline_3"
-dir_name = "rD_Trial_2c_woD"
+dir_name = "rD_baseline"
+dir_name = "rD_Trial_2r"
 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)
@@ -13,7 +13,9 @@ file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
 # case_files = os.listdir(file_case)
 # print(len(case_files)) 
 
-dir_txt_save = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/rD_check_txts/"
+dir_txt_save = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/rD_check_txts_new/"
+if not os.path.exists(dir_txt_save):
+    os.mkdir(dir_txt_save)
 
 exist_wrong_num = 0
 exist_wrong_num_gen = 0
@@ -38,6 +40,7 @@ for file in tqdm(processed_files):
     wrong_time_1 = np.argwhere(wrong_sigma_info[:, :, 0] > 0.5)
     wrong_time_2 = np.argwhere(wrong_sigma_info[:, :, 1] > 0.5)
     wrong_time_3 = np.argwhere(wrong_sigma_info[:, :, 2] > 0.5)
+    ex_flag2 = 0
 
     if len(wrong_time_1) > 0 or len(wrong_time_2) > 0 or len(wrong_time_3) > 0:
         exist_wrong_num += 1
@@ -45,13 +48,11 @@ for file in tqdm(processed_files):
         k2 = 0
         ex_flag = 0
 
-        if len(wrong_time_1) > 0 and np.max(wrong_time_1[:, 1]) > 4:
-            with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
-                ft.write(file)
-                ft.write("\n")
+        if len(wrong_time_1) > 0: # and np.max(wrong_time_1[:, 1]) > 4:
 
             exist_wrong_num_gen_dis += 1
             ex_flag = 1
+            ex_flag2 = 1
             flag1 = False
             flag2 = False
             for i in range(wrong_time_1.shape[0]):
@@ -72,13 +73,11 @@ for file in tqdm(processed_files):
                 k2 = 1
 
 
-        if len(wrong_time_2) > 0 and np.max(wrong_time_2[:, 1]) > 4:
-            with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
-                ft.write(file)
-                ft.write("\n")
+        if len(wrong_time_2) > 0: # and np.max(wrong_time_2[:, 1]) > 4:
 
             exist_wrong_num_gen_ang += 1
             ex_flag = 1
+            ex_flag2 = 1
             flag1 = False
             flag2 = False
             for i in range(wrong_time_2.shape[0]):
@@ -129,6 +128,16 @@ for file in tqdm(processed_files):
             # with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
             #     ft.write(file)
             #     ft.write("\n")
+        
+    if ex_flag2 == 1:
+        with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
+            ft.write(file)
+            ft.write("\n")
+    else:
+        with open(dir_txt_save + dir_name + "_correct_and_poc.txt", "a+") as ft2:
+            ft2.write(file)
+            ft2.write("\n")
+
 
 print(dir_name)
 print(f"All data:{len(processed_files)}")

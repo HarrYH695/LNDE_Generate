@@ -38,18 +38,18 @@ def _draw_trust_region(vis, pts, r, color):
 
 def _print_vehicle_info(vis, ptc, v, color, id_list):
 
-    # # print latitude (x)
-    # pt = (ptc[0] + 15, ptc[1])
-    # text = "%.6f" % v.location.x
-    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
-    # # print longitude (y)
-    # pt = (ptc[0] + 15, ptc[1] + 20)
-    # text = "%.6f" % v.location.y
-    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
-    # print v id
+    # print latitude (x)
     pt = (ptc[0] + 15, ptc[1])
+    text = "%.6f" % v.location.x
+    cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+    # print longitude (y)
+    pt = (ptc[0] + 15, ptc[1] + 15)
+    text = "%.6f" % v.location.y
+    cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+    # print v id
+    pt = (ptc[0] + 15, ptc[1]+30)
     text = "%s" % str(id_list.index(int(v.id)))
     cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
