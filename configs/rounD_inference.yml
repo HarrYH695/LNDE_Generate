@@ -26,7 +26,7 @@ pred_length: 1  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
 
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
-behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results/training/behavior_net/rounD_predlen_1_trial_2s_woD/checkpoints/ckpt_199.pt"
+behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results/training/behavior_net/rounD_predlen_1_trial_2r_woD/checkpoints/ckpt_99.pt"
 safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
