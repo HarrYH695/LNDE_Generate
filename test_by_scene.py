@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     #simulation_inference_model = SimulationInference(configs=configs)
 
-    dir_name = "rD_baseline_3"
+    dir_name = "rD_Trial_2r_woD"
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
     file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
     file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
@@ -123,13 +123,13 @@ if __name__ == '__main__':
                 scene_info["wrong_and_sigma"][i, heading[j + 1][1], 1] = 1
 
         #then check if final poc is too small
-        final_tb_data = pickle.load(open(file_t + scene[:-4]+f"_{scene_tb_length-5}.pkl", "rb"))
-        poc_tmp = np.array(final_tb_data["PoC_T"])
-        poc_final = np.sum(poc_tmp, axis=1)
-        if np.max(poc_final) < 0.999:
-            scene_info["wrong_and_sigma"][0, scene_tb_length - 1, 2] = 1
-        if np.max(poc_final) < 0.5:
-            scene_info["wrong_and_sigma"][0, scene_tb_length - 1, -1] = 1
+        # final_tb_data = pickle.load(open(file_t + scene[:-4]+f"_{scene_tb_length-5}.pkl", "rb"))
+        # poc_tmp = np.array(final_tb_data["PoC_T"])
+        # poc_final = np.sum(poc_tmp, axis=1)
+        # if np.max(poc_final) < 0.999:
+        #     scene_info["wrong_and_sigma"][0, scene_tb_length - 1, 2] = 1
+        # if np.max(poc_final) < 0.5:
+        #     scene_info["wrong_and_sigma"][0, scene_tb_length - 1, -1] = 1
 
 
         #then check if out of 3 sigma, 2sigma, 1sigma; record the mean and std in both directions

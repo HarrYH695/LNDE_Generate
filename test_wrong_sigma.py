@@ -3,8 +3,8 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-dir_name = "rD_baseline_2"
-dir_name = "rD_Trial_2c"
+dir_name = "rD_baseline_3"
+dir_name = "rD_Trial_2r_woD"
 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)
@@ -46,6 +46,10 @@ for file in tqdm(processed_files):
         ex_flag = 0
 
         if len(wrong_time_1) > 0 and np.max(wrong_time_1[:, 1]) > 4:
+            with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
+                ft.write(file)
+                ft.write("\n")
+
             exist_wrong_num_gen_dis += 1
             ex_flag = 1
             flag1 = False
@@ -69,6 +73,10 @@ for file in tqdm(processed_files):
 
 
         if len(wrong_time_2) > 0 and np.max(wrong_time_2[:, 1]) > 4:
+            with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
+                ft.write(file)
+                ft.write("\n")
+
             exist_wrong_num_gen_ang += 1
             ex_flag = 1
             flag1 = False
@@ -118,9 +126,9 @@ for file in tqdm(processed_files):
 
         if ex_flag == 1:
             exist_wrong_num_gen += 1
-            with open(dir_txt_save + dir_name + ".txt", "a+") as ft:
-                ft.write(file)
-                ft.write("\n")
+            # with open(dir_txt_save + dir_name + "_no_poc.txt", "a+") as ft:
+            #     ft.write(file)
+            #     ft.write("\n")
 
 print(dir_name)
 print(f"All data:{len(processed_files)}")
