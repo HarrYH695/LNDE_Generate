@@ -111,8 +111,10 @@ class TrafficSimulator(object):
         # print(f"corr:{corr.shape}")
 
         pred_mean_pos = mean_pos.detach().cpu().numpy()[0, :, :]
+        
         pred_std_pos = std_pos.detach().cpu().numpy()[0, :, :]
-        #pred_std_pos = np.sqrt(std_pos.detach().cpu().numpy()[0, :, :])
+        #pred_std_pos = np.sqrt(std_pos.detach().cpu().numpy()[0, :, :]) # attention!!!!!!!!!!!!!
+
         pred_corr = corr.detach().cpu().numpy()[0, :, :].astype(np.float64)
         pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
         pred_vid = buff_vid
@@ -124,8 +126,6 @@ class TrafficSimulator(object):
         pred_lon_mean = pred_mean_pos[:, self.pred_length:].astype(np.float64)
         pred_lat_std = pred_std_pos[:, 0:self.pred_length].astype(np.float64)
         pred_lon_std = pred_std_pos[:, self.pred_length:].astype(np.float64)
-        # pred_lat_std = np.sqrt(pred_std_pos[:, 0:self.pred_length]).astype(np.float64)
-        # pred_lon_std = np.sqrt(pred_std_pos[:, self.pred_length:]).astype(np.float64)
 
         pred_cos_heading = pred_cos_sin_heading[:, 0:self.pred_length].astype(np.float64)
         pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)

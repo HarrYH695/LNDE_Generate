@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 
 dir_name = "rD_baseline_3"
-dir_name = "rD_Trial_2r_woD"
+dir_name = "rD_Trial_2c_woD"
 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)

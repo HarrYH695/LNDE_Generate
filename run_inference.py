@@ -136,7 +136,7 @@ if __name__ == '__main__':
 # 2r2: 279
 # baseline3: 279
 # baseline2: 279
-# 2r_woD: 99
-# 2c_woD: 209
+# 2r_woD: 59
+# 2c_woD: 109
 # 2s_woD: 199
 # 0 0 0 0 0 0 0 
