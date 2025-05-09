@@ -143,8 +143,6 @@ class TrafficSimulator(object):
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std), np.mean(pred_corr)
 
 
-
-
         # """
         # Flatten a trajectory pool and run forward pass...
         # """

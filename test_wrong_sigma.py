@@ -3,8 +3,8 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-dir_name = "rD_baseline"
-dir_name = "rD_Trial_2r"
+dir_name = "rD_baseline_vali_only_2"
+#dir_name = "rD_Trial_2_vali_only"
 
 file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)

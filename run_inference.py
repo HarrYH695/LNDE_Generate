@@ -8,6 +8,7 @@ from tqdm import tqdm
 from simulation_modeling.simulation_inference import SimulationInference
 import pickle
 import numpy as np
+import random
 
 # settings
 parser = argparse.ArgumentParser()
@@ -23,6 +24,18 @@ parser.add_argument('--viz-flag', action='store_true', help='Default is False, a
 
 args = parser.parse_args()
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+
 if __name__ == '__main__':
     # Load config file
     with open(args.config) as file:
@@ -31,6 +44,10 @@ if __name__ == '__main__':
             print(f"Loading config file: {args.config}")
         except yaml.YAMLError as exception:
             print(exception)
+
+    #set and save the random seed
+    seed = 0
+    set_seed(seed)
 
     # Settings
     configs["device"] = torch.device("cuda:0" if configs["use_gpu"] else "cpu")
@@ -58,7 +75,7 @@ if __name__ == '__main__':
     simulation_inference_model = SimulationInference(configs=configs)
     
     #test!
-    file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
+    #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
     # with open("/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/wrong_case_2.txt", "r") as f:
     #     for line in f:
     #         file_info = line.strip()
@@ -89,12 +106,12 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    dir_name = "rD_Trial_2r_woD"
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/"
+    dir_name = "rD_t2_loss_1_2"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
     coll_num = 0
-    for idx in tqdm(range(10000)):
+    for idx in tqdm(range(5)):
         #print(f"----------------{idx}----------------")
         coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
         coll_num += coll
@@ -130,8 +147,10 @@ if __name__ == '__main__':
                         
                         #simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+5)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
-#python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
+# python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
 # store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results
+# baseline: 299
+# 2: 69
 # 2c: 99
 # 2r2: 279
 # baseline3: 279
@@ -140,3 +159,10 @@ if __name__ == '__main__':
 # 2c_woD: 109
 # 2s_woD: 199
 # 0 0 0 0 0 0 0 
+
+#----------------------------------
+#new try
+#baseline:139
+#t1:139
+#t2_loss_1:29(non nan) 129(nan)(have experienced: can not inference)
+#t2_loss_2:129

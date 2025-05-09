@@ -57,9 +57,10 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
 
-    dir_name = "rD_baseline"
+    dir_name = "rD_Trial_2"
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
     save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/scene_videos/"
+
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -68,12 +69,15 @@ if __name__ == '__main__':
 
     num = 0
     for scene in tqdm(scenes_all[9800:]):
-        scene = "5819.pkl"
+        scene = "7279.pkl"
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
+        # scene_before = scene_data_file["states_before"]
+        # print(len(scene_before))
         if len(scene_data) >= 7:
             num += 1
             simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
+    
         break
     print(num)
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

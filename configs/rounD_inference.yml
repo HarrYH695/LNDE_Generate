@@ -26,7 +26,7 @@ pred_length: 1  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
 
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
-behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results/training/behavior_net/rounD_predlen_1_trial_2r_woD/checkpoints/ckpt_59.pt"
+behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_latest/training/behavior_net/rounD_t2_loss_1/checkpoints/ckpt_39.pt"
 safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
@@ -66,7 +66,7 @@ sim_remove_vehicle_area_map: "data/inference/rounD/ROIs-map/rounD-sim-remove-veh
 entrance_map_dir: &entrance_map_dir "data/inference/rounD/ROIs-map/entrance"  # Only needed if want to use lane_based_safety_check for initialization.
 map_height: &map_height 936  # The map height and width ratio should be consistent with the basemap and drivable map pictures.
 map_width: &map_width 1678
-init_traj_clips_dir: "data/inference/rounD/simulation_initialization/initial_clips/"  # For initialization.
+init_traj_clips_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/val/"  # For initialization.
 traffic_generator_config:
   method: Poisson  # Poisson or Random
   gen_veh_states_dir: "data/inference/rounD/simulation_initialization/gen_veh_states/rounD/"  # The states of generated vehicle at entrance during the simulation

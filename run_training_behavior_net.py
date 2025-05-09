@@ -1,8 +1,11 @@
 import argparse
 import os
 import yaml
+import random
 import shutil
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 from behavior_net import datasets
 from behavior_net import Trainer
@@ -11,7 +14,7 @@ from behavior_net import Trainer
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
-parser.add_argument('--save-result-path', type=str, default=r'./results/training/behavior_net',
+parser.add_argument('--save-result-path', type=str, default=r'./results_latest/training/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs/AA_rdbt_behavior_net_training.yml')
@@ -30,6 +33,18 @@ def check_data_loading():
         print(data['input'].shape)
         print(data['gt'].shape)
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+
 
 if __name__ == '__main__':
     # Load config file
@@ -46,6 +61,10 @@ if __name__ == '__main__':
     configs["checkpoint_dir"] = os.path.join(save_result_path, experiment_name, "checkpoints")  # The path to save trained checkpoints
     configs["vis_dir"] = os.path.join(save_result_path, experiment_name, "vis_training")  # The path to save training visualizations
 
+    #set and save the random seed
+    seed = 0
+    set_seed(seed)
+
     # Save the config file of this experiment
     os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=True)
     save_path = os.path.join(save_result_path, experiment_name, "config.yml")
@@ -61,7 +80,7 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_predlen_1_trial_2r_woD
+# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_trial1
 # 2: corr和std分离 
 # 3:mae->mse   
 # 2_r and 2r2: repeat 2 , 2r2 record std and corr
@@ -73,3 +92,10 @@ if __name__ == '__main__':
 
 # baseline_2 : only add vae
 # baseline_3 : mse
+
+# --------------------------------------
+# New: set seed = 0
+# baseline
+# Trial_1: joint gaussian + vae_sample
+# Trial_2: just joint gaussian
+# Trial_3: joint gaussian + gaussian mixture: 3 mixture

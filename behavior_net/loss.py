@@ -30,7 +30,7 @@ class UncertaintyRegressionLoss(nn.Module):
         super(UncertaintyRegressionLoss, self).__init__()
         self.choice = choice
 
-    def __call__(self, y_pred_mean, y_pred_std, y_true, weight=None):
+    def __call__(self, y_pred_mean, y_pred_std, y_true, weight=None, pred_corr=None):
 
         if self.choice == 'mse':
             diff_map_mean = (y_pred_mean - y_true)**2
@@ -44,6 +44,29 @@ class UncertaintyRegressionLoss(nn.Module):
             diff_map = (y_pred_mean - y_true)**2
         elif self.choice == 'mae_c':
             diff_map = torch.abs(y_pred_mean - y_true)
+        elif self.choice == "mae_corr_1":
+            std_x = y_pred_std[:,:,0].unsqueeze(-1)
+            std_y = y_pred_std[:,:,1].unsqueeze(-1)
+
+            std_c = torch.cat([std_x, std_y * pred_corr + torch.sqrt(1 - pred_corr**2) * std_y], dim=2)
+
+            diff_map_mean = torch.abs(y_pred_mean - y_true)
+            diff_map_std = torch.abs(torch.abs(y_pred_mean - y_true) - std_c)
+            diff_map = diff_map_mean + diff_map_std
+        elif self.choice == "mae_corr_2":
+            std_x = y_pred_std[:,:,0].unsqueeze(-1)
+            std_y = y_pred_std[:,:,1].unsqueeze(-1)
+            gt_x = y_true[:,:,0].unsqueeze(-1)
+            gt_y = y_true[:,:,1].unsqueeze(-1)
+
+            D = torch.sqrt((std_x**2 - std_y**2)**2 + 4 * pred_corr**2 * std_x**2 * std_y**2 + 1e-9)
+            x_r = ((std_x**2 - std_y**2) * gt_x + 2 * pred_corr * std_x * std_y * gt_y) / D
+            y_r = (-2 * pred_corr * std_x * std_y * gt_x + (std_x**2 - std_y**2) * gt_y) / D
+            gt_r = torch.cat([x_r, y_r], dim=2)
+            
+            diff_map_mean = torch.abs(y_pred_mean - gt_r)
+            diff_map_std = torch.abs(torch.abs(y_pred_mean - gt_r) - y_pred_std)
+            diff_map = diff_map_mean + diff_map_std
         elif self.choice == 'cos_sin_heading_mae':
             diff_map = torch.abs(y_pred_mean - y_true)
         else:

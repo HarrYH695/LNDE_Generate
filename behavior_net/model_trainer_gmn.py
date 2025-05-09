@@ -783,4 +783,3 @@ class Trainer(object):
             # self._visualize_prediction()
 
         self.writer.close()
-
