@@ -17,7 +17,7 @@ def set_requires_grad(nets, requires_grad=False):
                 param.requires_grad = requires_grad
 
 
-def define_G(model, input_dim, output_dim, m_tokens):
+def define_G(model, input_dim, output_dim, m_tokens, n_gaussian=3):
 
     h_dim = 256
 
@@ -41,7 +41,7 @@ def define_G(model, input_dim, output_dim, m_tokens):
             'Wrong backbone model name %s (choose one from [simple_mlp, bn_mlp, transformer])' % model)
 
     # define prediction heads
-    P = PredictionsHeads(h_dim=h_dim, output_dim=output_dim)
+    P = PredictionsHeads(h_dim=h_dim, output_dim=output_dim, n_gaussian=n_gaussian)
 
     return nn.Sequential(M, Backbone, P)
 
@@ -95,19 +95,23 @@ class PredictionsHeads(nn.Module):
     Also prediction cos and sin headings.
     """
 
-    def __init__(self, h_dim, output_dim):
+    def __init__(self, h_dim, output_dim, n_gaussian):
         super().__init__()
+        # number of gaussian
+        self.n_gaussian = n_gaussian
+
         # x, y position
-        self.out_net_mean = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
-        self.out_net_std = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
-        self.out_net_corr = nn.Linear(in_features=h_dim, out_features=1, bias=True)
+        self.out_net_mean = nn.Linear(in_features=h_dim, out_features=int(output_dim * self.n_gaussian / 2), bias=True)
+        self.out_net_std = nn.Linear(in_features=h_dim, out_features=int(output_dim * self.n_gaussian / 2), bias=True)
+        self.out_net_corr = nn.Linear(in_features=h_dim, out_features=self.n_gaussian, bias=True)
 
         self.elu = torch.nn.ELU()
         self.tanh = torch.nn.Tanh()
         self.softplus = torch.nn.Softplus()
         
         # cos and sin heading
-        self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
+        self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim * self.n_gaussian / 2), bias=True)
+
 
     def forward(self, x):
 

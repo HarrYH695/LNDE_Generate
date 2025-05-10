@@ -82,11 +82,11 @@ if __name__ == '__main__':
     save_path = os.path.join(save_result_path, experiment_name, "config.yml")
     shutil.copyfile(args.config, save_path)
 
-    #set or save the random seed
-    # seed = 42
-    # set_seed(seed)
+    # set or save the random seed
+    seed = 2025
+    set_seed(seed)
 
-    dump_rng_states(os.path.join(save_result_path, experiment_name))
+    #dump_rng_states(os.path.join(save_result_path, experiment_name))
 
 
     # Initialize the DataLoader
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_t1_r2
+# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_t1_r4
 # 2: corr和std分离 
 # 3:mae->mse   
 # 2_r and 2r2: repeat 2 , 2r2 record std and corr
@@ -118,5 +118,7 @@ if __name__ == '__main__':
 # Trial_1: joint gaussian + vae_sample
 # Trial_1_r1: change seed to 42
 # Trial_1_r2: random seed and read them
+# Trial_1_r3: change seed to 2025
+# Trial_1_r4: random seed and read them
 # Trial_2: just joint gaussian
 # Trial_3: joint gaussian + gaussian mixture: 3 mixture

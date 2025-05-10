@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 
-from .networks import define_G, define_D, set_requires_grad, define_safety_mapper
+from .networks_gmn import define_G, define_D, set_requires_grad, define_safety_mapper
 from .loss import UncertaintyRegressionLoss, GANLoss
 from .metric import RegressionAccuracy
 from . import utils
@@ -32,11 +32,12 @@ class Trainer(object):
         self.output_dim = 4 * configs["pred_length"]  # x, y, cos_heading, sin_heading
         self.pred_length = configs["pred_length"]
         self.m_tokens = configs["max_num_vehicles"]
+        self.n_gaussian = 3
 
         # initialize networks
         self.net_G = define_G(
             configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
-            m_tokens=self.m_tokens).to(device)
+            m_tokens=self.m_tokens, n_gaussian=self.n_gaussian).to(device)
         self.net_D = define_D(input_dim=self.output_dim).to(device)
 
         # initialize safety mapping networks to involve it in the training loop
@@ -458,23 +459,6 @@ class Trainer(object):
         # print(f"lon:{lon.shape}")
 
         return torch.cat([lat, lon, heading_mu], dim=-1)
-
-
-        # bs, _, _ = mu.shape
-        # epsilons_lat = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
-        # epsilons_lon = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
-        # epsilons_lat = torch.reshape(epsilons_lat, [bs, -1, 1])
-        # epsilons_lon = torch.reshape(epsilons_lon, [bs, -1, 1])
-
-        # lat_mean = mu[:, :, 0:self.pred_length]
-        # lon_mean = mu[:, :, self.pred_length:]
-        # lat_std = std[:, :, 0:self.pred_length]
-        # lon_std = std[:, :, self.pred_length:]
-
-        # lat = lat_mean + epsilons_lat * lat_std
-        # lon = lon_mean + epsilons_lon * lon_std
-
-        # return torch.cat([lat, lon, heading_mu], dim=-1)
 
 
     def _forward_pass(self, batch, rollout=5):
