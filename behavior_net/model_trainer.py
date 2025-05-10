@@ -58,7 +58,7 @@ class Trainer(object):
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
         # define loss function and error metric
-        self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_corr_2')
+        self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_c')
         self.regression_loss_func_heading = UncertaintyRegressionLoss(choice='cos_sin_heading_mae')
 
         self.gan_loss = GANLoss(gan_mode='vanilla').to(device)
@@ -580,32 +580,32 @@ class Trainer(object):
 
     def _compute_loss_G(self):
 
-        # # reg loss (between pred0 and gt)
-        # G_pred_mean_at_step0 = self.G_pred_mean[0]
-        # #G_pred_std_at_step0 = self.G_pred_std[0]
-        # sample_at_step0 = self.rollout_pos[0]
+        # reg loss (between pred0 and gt)
+        G_pred_mean_at_step0 = self.G_pred_mean[0]
+        #G_pred_std_at_step0 = self.G_pred_std[0]
+        sample_at_step0 = self.rollout_pos[0]
 
 
-        # G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
-        # #G_pred_std_pos_at_step0 = G_pred_std_at_step0
+        G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
+        #G_pred_std_pos_at_step0 = G_pred_std_at_step0
 
-        # gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-        # gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+        gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+        gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-        # self.reg_loss_position = self.regression_loss_func_pos(y_pred_mean=sample_at_step0[:, :, :int(self.output_dim / 2)], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-        # self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+        self.reg_loss_position = self.regression_loss_func_pos(y_pred_mean=sample_at_step0[:, :, :int(self.output_dim / 2)], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+        self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
-        # D_pred_fake = self.net_D(sample_at_step0)
-        # #print(f"D_pred_fake:{D_pred_fake.shape}")
-        # # Filter out ghost vehicles
-        # # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
-        # ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
-        # D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
-        # #print(f"D_pred_fake_filtered:{D_pred_fake_filtered.shape}")
-        # self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
+        D_pred_fake = self.net_D(sample_at_step0)
+        #print(f"D_pred_fake:{D_pred_fake.shape}")
+        # Filter out ghost vehicles
+        # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
+        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
+        D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
+        #print(f"D_pred_fake_filtered:{D_pred_fake_filtered.shape}")
+        self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
-        # self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
-        # #print(self.reg_loss_position.item(), self.reg_loss_heading.item(), self.G_adv_loss.item(), self.batch_loss_G.item())
+        self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
+        #print(self.reg_loss_position.item(), self.reg_loss_heading.item(), self.G_adv_loss.item(), self.batch_loss_G.item())
 
 
 
@@ -633,28 +633,28 @@ class Trainer(object):
 
 
 
-        # reg loss (in trial 2, only joint Gaussian)
-        G_pred_mean_at_step0 = self.G_pred_mean[0]
-        G_pred_std_at_step0 = self.G_pred_std[0]
-        G_pred_corr_at_step0 = self.G_pred_corr[0]
+        # # reg loss (in trial 2, only joint Gaussian)
+        # G_pred_mean_at_step0 = self.G_pred_mean[0]
+        # G_pred_std_at_step0 = self.G_pred_std[0]
+        # G_pred_corr_at_step0 = self.G_pred_corr[0]
 
-        G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
-        G_pred_std_pos_at_step0 = G_pred_std_at_step0
+        # G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
+        # G_pred_std_pos_at_step0 = G_pred_std_at_step0
 
-        gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-        gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+        # gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+        # gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-        self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos, pred_corr=G_pred_corr_at_step0)
-        self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+        # self.reg_loss_position = self.regression_loss_func_pos(G_pred_pos_at_step0, G_pred_std_pos_at_step0, gt_pos, weight=mask_pos, pred_corr=G_pred_corr_at_step0)
+        # self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
-        D_pred_fake = self.net_D(self.G_pred_mean[0])
-        # Filter out ghost vehicles
-        # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
-        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
-        D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
-        self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
+        # D_pred_fake = self.net_D(self.G_pred_mean[0])
+        # # Filter out ghost vehicles
+        # # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
+        # ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4).flatten()  # bs * m_token.
+        # D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
+        # self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
-        self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
+        # self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
 
     def _compute_loss_D(self):
         # print(f"self.G_pred_mean[0]:{self.G_pred_mean[0].shape}")

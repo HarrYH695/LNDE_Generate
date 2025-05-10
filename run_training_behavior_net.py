@@ -6,6 +6,7 @@ import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import pickle
 
 from behavior_net import datasets
 from behavior_net import Trainer
@@ -45,6 +46,21 @@ def set_seed(seed):
     # torch.backends.cudnn.deterministic = True
     # torch.backends.cudnn.benchmark = False
 
+def dump_rng_states(path):
+    state = {
+        'python_random_state': random.getstate(),
+        'numpy_random_state': np.random.get_state(),
+        'torch_cpu_rng_state': torch.get_rng_state(),
+        'torch_cuda_rng_states': (
+            torch.cuda.get_rng_state_all()
+            if torch.cuda.is_available() else None
+        ),
+        'torch_initial_seed': torch.initial_seed(),
+    }
+
+    with open(os.path.join(path, "seeds.pkl"), 'wb') as f:
+        pickle.dump(state, f)
+    
 
 if __name__ == '__main__':
     # Load config file
@@ -61,14 +77,17 @@ if __name__ == '__main__':
     configs["checkpoint_dir"] = os.path.join(save_result_path, experiment_name, "checkpoints")  # The path to save trained checkpoints
     configs["vis_dir"] = os.path.join(save_result_path, experiment_name, "vis_training")  # The path to save training visualizations
 
-    #set and save the random seed
-    seed = 0
-    set_seed(seed)
-
     # Save the config file of this experiment
     os.makedirs(os.path.join(save_result_path, experiment_name), exist_ok=True)
     save_path = os.path.join(save_result_path, experiment_name, "config.yml")
     shutil.copyfile(args.config, save_path)
+
+    #set or save the random seed
+    # seed = 42
+    # set_seed(seed)
+
+    dump_rng_states(os.path.join(save_result_path, experiment_name))
+
 
     # Initialize the DataLoader
     dataloaders = datasets.get_loaders(configs)
@@ -80,7 +99,7 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_trial1
+# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_t1_r2
 # 2: corr和std分离 
 # 3:mae->mse   
 # 2_r and 2r2: repeat 2 , 2r2 record std and corr
@@ -97,5 +116,7 @@ if __name__ == '__main__':
 # New: set seed = 0
 # baseline
 # Trial_1: joint gaussian + vae_sample
+# Trial_1_r1: change seed to 42
+# Trial_1_r2: random seed and read them
 # Trial_2: just joint gaussian
 # Trial_3: joint gaussian + gaussian mixture: 3 mixture

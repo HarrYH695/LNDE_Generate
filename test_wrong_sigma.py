@@ -3,17 +3,17 @@ from tqdm import tqdm
 import pickle
 import numpy as np
 
-dir_name = "rD_baseline_vali_only_2"
-#dir_name = "rD_Trial_2_vali_only"
+dir_name = "rD_baseline"
+dir_name = "rD_t2_loss_1_1"
 
-file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/check/"
+file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)
 
-file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
+file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/2/"
 # case_files = os.listdir(file_case)
 # print(len(case_files)) 
 
-dir_txt_save = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/rD_check_txts_new/"
+dir_txt_save = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/rD_check_txts_latest/"
 if not os.path.exists(dir_txt_save):
     os.mkdir(dir_txt_save)
 
