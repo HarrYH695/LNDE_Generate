@@ -61,6 +61,19 @@ def dump_rng_states(path):
     with open(os.path.join(path, "seeds.pkl"), 'wb') as f:
         pickle.dump(state, f)
     
+def load_rng_states(path):
+    with open(path, 'rb') as f:
+        state = pickle.load(f)
+
+    random.setstate(state['python_random_state'])
+    np.random.set_state(state['numpy_random_state'])
+    torch.set_rng_state(state['torch_cpu_rng_state'])
+    if state['torch_cuda_rng_states'] is not None:
+        torch.cuda.set_rng_state_all(state['torch_cuda_rng_states'])
+
+    print(f"Restored RNG states.  original torch initial seed = "
+          f"{state['torch_initial_seed']}")
+
 
 if __name__ == '__main__':
     # Load config file
@@ -82,11 +95,14 @@ if __name__ == '__main__':
     save_path = os.path.join(save_result_path, experiment_name, "config.yml")
     shutil.copyfile(args.config, save_path)
 
-    # set or save the random seed
-    seed = 2025
-    set_seed(seed)
+    # set or save or load the random seed
+    # seed = 2025
+    # set_seed(seed)
 
     #dump_rng_states(os.path.join(save_result_path, experiment_name))
+
+    seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_latest/training/behavior_net/rounD_t1_r4/seeds.pkl"
+    load_rng_states(seed_file)
 
 
     # Initialize the DataLoader
@@ -99,7 +115,7 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_t1_r4
+# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_b_seed_r4
 # 2: corr和std分离 
 # 3:mae->mse   
 # 2_r and 2r2: repeat 2 , 2r2 record std and corr

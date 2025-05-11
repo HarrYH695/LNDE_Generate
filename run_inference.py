@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    dir_name = "rD_t1_r4"
+    dir_name = "rD_t1_r3"
     save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
@@ -169,5 +169,5 @@ if __name__ == '__main__':
 
 #t1_r1:59
 #t1_r2:89
-#t1_r3:
+#t1_r3:109
 #t1_r4:84
