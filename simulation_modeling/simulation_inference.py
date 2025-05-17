@@ -346,7 +346,7 @@ class SimulationInference(object):
         """
 
         # run self-simulation
-        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_std_x, pred_std_y, pred_corr = self.sim.run_forwardpass(traj_pool)
+        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_std_x, pred_std_y = self.sim.run_forwardpass(traj_pool)
         output_delta_position_mask = np.zeros(buff_vid.shape, dtype=bool)
 
         # determine whether to do safety mapping
@@ -366,7 +366,7 @@ class SimulationInference(object):
 
         TIME_BUFF_new = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
 
-        return TIME_BUFF_new, pred_vid, output_delta_position_mask, pred_std_x, pred_std_y, pred_corr
+        return TIME_BUFF_new, pred_vid, output_delta_position_mask, pred_std_x, pred_std_y
 
     def update_basic_stats_of_the_current_sim_episode(self, tt, TIME_BUFF, pred_vid):
         if tt == 0:
@@ -650,9 +650,9 @@ class SimulationInference(object):
         traj_pool_new = copy.deepcopy(traj_pool)
         std_x_all = []
         std_y_all = []
-        corr_all = []
+        #corr_all = []
         for i in range(max_time):
-            TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y, pred_corr = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+            TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
             TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
             traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
@@ -662,7 +662,7 @@ class SimulationInference(object):
 
             std_x_all.append(std_x)
             std_y_all.append(std_y)
-            corr_all.append(pred_corr)
+            #corr_all.append(pred_corr)
 
             if self.one_sim_colli_flag:
                 #infos["inference_step"] = i + 1
@@ -693,7 +693,7 @@ class SimulationInference(object):
                     infos['crash_step'] = i + 1
                     infos["std_x"] = std_x_all
                     infos["std_y"] = std_y_all
-                    infos["corr"] = corr_all
+                    #infos["corr"] = corr_all
 
                     with open(result_dir + f"{num_idx}.pkl", "wb") as f:
                         pickle.dump(infos, f)

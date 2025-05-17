@@ -83,66 +83,6 @@ class TrafficSimulator(object):
         return net_safety_mapper
 
     def run_forwardpass(self, traj_pool):
-        """
-        Flatten a trajectory pool and run forward pass...
-        """
-
-        buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_vid = traj_pool.flatten_trajectory(
-            time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
-
-        buff_lat = utils.nan_intep_2d(buff_lat, axis=1)
-        buff_lon = utils.nan_intep_2d(buff_lon, axis=1)
-        buff_cos_heading = utils.nan_intep_2d(buff_cos_heading, axis=1)
-        buff_sin_heading = utils.nan_intep_2d(buff_sin_heading, axis=1)
-
-        input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=1)
-        input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
-
-        # # sample an input state from testing data (e.g. 0th state)
-        input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D
-        input_matrix = input_matrix.to(self.device)
-
-        input_matrix[torch.isnan(input_matrix)] = 0.0
-        #print(f"input_matrix:{input_matrix.shape}")
-        # run prediction
-        mean_pos, std_pos, corr, cos_sin_heading = self.net_G(input_matrix)
-        # print(f"mean_pos:{mean_pos.shape}")
-        # print(f"std_pos:{std_pos.shape}")
-        # print(f"corr:{corr.shape}")
-
-        pred_mean_pos = mean_pos.detach().cpu().numpy()[0, :, :]
-        
-        pred_std_pos = std_pos.detach().cpu().numpy()[0, :, :]
-        #pred_std_pos = np.sqrt(std_pos.detach().cpu().numpy()[0, :, :]) # attention!!!!!!!!!!!!!
-
-        pred_corr = corr.detach().cpu().numpy()[0, :, :].astype(np.float64)
-        pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
-        pred_vid = buff_vid
-
-        # print(f"pred_mean_pos:{pred_mean_pos.shape}")
-        # print(f"pred_std_pos:{pred_std_pos.shape}")
-
-        pred_lat_mean = pred_mean_pos[:, 0:self.pred_length].astype(np.float64)
-        pred_lon_mean = pred_mean_pos[:, self.pred_length:].astype(np.float64)
-        pred_lat_std = pred_std_pos[:, 0:self.pred_length].astype(np.float64)
-        pred_lon_std = pred_std_pos[:, self.pred_length:].astype(np.float64)
-
-        pred_cos_heading = pred_cos_sin_heading[:, 0:self.pred_length].astype(np.float64)
-        pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)
-
-        # print("for sampling:")
-        # print(f"pred_lat_mean:{pred_lat_mean.shape}")
-        # print(f"pred_lon_mean:{pred_lon_mean.shape}")
-        # print(f"pred_lat_std:{pred_lat_std.shape}")
-        # print(f"pred_lon_std:{pred_lon_std.shape}")
-        # print(f"pred_corr:{pred_corr.shape}")
-
-        pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std, pred_corr)
-        # print(f"pred_lat:{pred_lat.shape}")
-        # print(f"pred_lon:{pred_lon.shape}")
-        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std), np.mean(pred_corr)
-
-
         # """
         # Flatten a trajectory pool and run forward pass...
         # """
@@ -163,24 +103,84 @@ class TrafficSimulator(object):
         # input_matrix = input_matrix.to(self.device)
 
         # input_matrix[torch.isnan(input_matrix)] = 0.0
-
+        # #print(f"input_matrix:{input_matrix.shape}")
         # # run prediction
-        # mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
+        # mean_pos, std_pos, corr, cos_sin_heading = self.net_G(input_matrix)
+        # # print(f"mean_pos:{mean_pos.shape}")
+        # # print(f"std_pos:{std_pos.shape}")
+        # # print(f"corr:{corr.shape}")
+
         # pred_mean_pos = mean_pos.detach().cpu().numpy()[0, :, :]
+        
         # pred_std_pos = std_pos.detach().cpu().numpy()[0, :, :]
+        # #pred_std_pos = np.sqrt(std_pos.detach().cpu().numpy()[0, :, :]) # attention!!!!!!!!!!!!!
+
+        # pred_corr = corr.detach().cpu().numpy()[0, :, :].astype(np.float64)
         # pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
         # pred_vid = buff_vid
+
+        # # print(f"pred_mean_pos:{pred_mean_pos.shape}")
+        # # print(f"pred_std_pos:{pred_std_pos.shape}")
 
         # pred_lat_mean = pred_mean_pos[:, 0:self.pred_length].astype(np.float64)
         # pred_lon_mean = pred_mean_pos[:, self.pred_length:].astype(np.float64)
         # pred_lat_std = pred_std_pos[:, 0:self.pred_length].astype(np.float64)
         # pred_lon_std = pred_std_pos[:, self.pred_length:].astype(np.float64)
+
         # pred_cos_heading = pred_cos_sin_heading[:, 0:self.pred_length].astype(np.float64)
         # pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)
 
-        # pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
+        # # print("for sampling:")
+        # # print(f"pred_lat_mean:{pred_lat_mean.shape}")
+        # # print(f"pred_lon_mean:{pred_lon_mean.shape}")
+        # # print(f"pred_lat_std:{pred_lat_std.shape}")
+        # # print(f"pred_lon_std:{pred_lon_std.shape}")
+        # # print(f"pred_corr:{pred_corr.shape}")
 
-        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std)
+        # pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std, pred_corr)
+        # # print(f"pred_lat:{pred_lat.shape}")
+        # # print(f"pred_lon:{pred_lon.shape}")
+        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std), np.mean(pred_corr)
+
+
+        """
+        Flatten a trajectory pool and run forward pass...
+        """
+
+        buff_lat, buff_lon, buff_cos_heading, buff_sin_heading, buff_vid = traj_pool.flatten_trajectory(
+            time_length=self.history_length, max_num_vehicles=self.m_tokens, output_vid=True)
+
+        buff_lat = utils.nan_intep_2d(buff_lat, axis=1)
+        buff_lon = utils.nan_intep_2d(buff_lon, axis=1)
+        buff_cos_heading = utils.nan_intep_2d(buff_cos_heading, axis=1)
+        buff_sin_heading = utils.nan_intep_2d(buff_sin_heading, axis=1)
+
+        input_matrix = np.concatenate([buff_lat, buff_lon, buff_cos_heading, buff_sin_heading], axis=1)
+        input_matrix = torch.tensor(input_matrix, dtype=torch.float32)
+
+        # # sample an input state from testing data (e.g. 0th state)
+        input_matrix = input_matrix.unsqueeze(dim=0) # make sure the input has a shape of N x D
+        input_matrix = input_matrix.to(self.device)
+
+        input_matrix[torch.isnan(input_matrix)] = 0.0
+
+        # run prediction
+        mean_pos, std_pos, cos_sin_heading = self.net_G(input_matrix)
+        pred_mean_pos = mean_pos.detach().cpu().numpy()[0, :, :]
+        pred_std_pos = std_pos.detach().cpu().numpy()[0, :, :]
+        pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
+        pred_vid = buff_vid
+
+        pred_lat_mean = pred_mean_pos[:, 0:self.pred_length].astype(np.float64)
+        pred_lon_mean = pred_mean_pos[:, self.pred_length:].astype(np.float64)
+        pred_lat_std = pred_std_pos[:, 0:self.pred_length].astype(np.float64)
+        pred_lon_std = pred_std_pos[:, self.pred_length:].astype(np.float64)
+        pred_cos_heading = pred_cos_sin_heading[:, 0:self.pred_length].astype(np.float64)
+        pred_sin_heading = pred_cos_sin_heading[:, self.pred_length:].astype(np.float64)
+
+        pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
+
+        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std)
 
 
     def do_safety_mapping(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, output_delta_position_mask=False):
@@ -201,33 +201,33 @@ class TrafficSimulator(object):
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid
 
 
-    def sampling(self, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std, pred_corr):
-        """
-        Sample a trajectory from predicted mean and std.
-        """
-
-        epsilons_lat = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
-        epsilons_lon = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
-        # print(F"epsilons_lat:{epsilons_lat.shape}")
-        # print(F"epsilons_lon:{epsilons_lon.shape}")
-        pred_lat = pred_lat_mean + epsilons_lat * pred_lat_std
-        pred_lon = pred_lon_mean + epsilons_lat * pred_lon_std * pred_corr + pred_lon_std * np.sqrt(1 - pred_corr ** 2) * epsilons_lon
-
-        return pred_lat, pred_lon
-
-
-
+    def sampling(self, pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std):#, pred_corr):
         # """
         # Sample a trajectory from predicted mean and std.
         # """
 
         # epsilons_lat = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
         # epsilons_lon = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
-
+        # # print(F"epsilons_lat:{epsilons_lat.shape}")
+        # # print(F"epsilons_lon:{epsilons_lon.shape}")
         # pred_lat = pred_lat_mean + epsilons_lat * pred_lat_std
-        # pred_lon = pred_lon_mean + epsilons_lon * pred_lon_std
+        # pred_lon = pred_lon_mean + epsilons_lat * pred_lon_std * pred_corr + pred_lon_std * np.sqrt(1 - pred_corr ** 2) * epsilons_lon
 
         # return pred_lat, pred_lon
+
+
+
+        """
+        Sample a trajectory from predicted mean and std.
+        """
+
+        epsilons_lat = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
+        epsilons_lon = np.reshape([random.gauss(0, 1) for _ in range(self.m_tokens)], [-1, 1])
+
+        pred_lat = pred_lat_mean + epsilons_lat * pred_lat_std
+        pred_lon = pred_lon_mean + epsilons_lon * pred_lon_std
+
+        return pred_lat, pred_lon
 
 
     def prediction_to_trajectory_rolling_horizon(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step):

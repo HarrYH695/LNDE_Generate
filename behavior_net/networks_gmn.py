@@ -108,26 +108,45 @@ class PredictionsHeads(nn.Module):
         self.elu = torch.nn.ELU()
         self.tanh = torch.nn.Tanh()
         self.softplus = torch.nn.Softplus()
+        self.softmax = torch.nn.Softmax(dim=-1)
         
         # cos and sin heading
-        self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim * self.n_gaussian / 2), bias=True)
+        #self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim * self.n_gaussian / 2), bias=True)
+        self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim / 2), bias=True)
 
+        # pi_i, i = range(n_gaussian)
+        self.out_pi = nn.Linear(in_features=h_dim, out_features=n_gaussian, bias=True)
 
     def forward(self, x):
 
         # shape x: batch_size x m_token x m_state
         out_mean = self.out_net_mean(x)
+        out_cos_sin_heading = self.out_net_cos_sin_heading(x)
         out_std_raw = self.out_net_std(x)
-        corr = self.out_net_corr(x)
-
+        out_corr_raw = self.out_net_corr(x)
+        out_pi_raw = self.out_pi(x)
+        
+        out_pi = self.softmax(out_pi_raw)  #[B, N=32, 3]
+        out_corr = self.tanh(out_corr_raw) #[B, N=32, 3]
         out_std = self.elu(out_std_raw) + 1
         #out_std = out_std_raw ** 2
         #out_std = self.softplus(out_std_raw)
-        
-        out_corr = self.tanh(corr)
-        out_cos_sin_heading = self.out_net_cos_sin_heading(x)
 
-        return out_mean, out_std, out_corr, out_cos_sin_heading
+        # change shape into (batch, 32, n_gaussian, 2)
+        B, N, C = out_mean.shape
+        out_mean = out_mean.view(B, N, self.n_gaussian, 2) #[B, 32, 3, 2]
+        out_std = out_std.view(B, N, self.n_gaussian, 2)
+        #out_cos_sin_heading = out_cos_sin_heading.view(B, N, self.n_gaussian, 2)
+
+        #calculate L where cov = L @ L^T [B, 32, 3, 2, 2]
+        #L = [std_x, 0; corr*std_y, sqrt(1-corr**2)*std_y]
+        std_x = out_std[:,:,:,0]
+        std_y = out_std[:,:,:,1]
+        row1 = torch.stack([std_x, torch.zeros_like(std_x)], dim=-1)
+        row2 = torch.stack([out_corr*std_y, torch.sqrt(1-out_corr**2)*std_y], dim=-1)
+        out_L = torch.stack([row1, row2], dim=-2)
+
+        return out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L
 
 
 

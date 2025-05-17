@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    dir_name = "rD_t1_r3"
+    dir_name = "rD_b_seed_r4_2"
     save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
@@ -163,6 +163,7 @@ if __name__ == '__main__':
 #----------------------------------
 #new try
 #baseline:139
+#b_seed_r4:99
 #t1:139 t1_r:the best trial before, trial_2
 #t2_loss_1:29(non nan) 129(nan)(have experienced: can not inference)
 #t2_loss_2:129

@@ -10,10 +10,32 @@ import os
 # # file_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir + "/scene_videos/"
 # # print(len(os.listdir(file_path)))
 
-a = torch.ones((3,5,2))
-b = a[:,:,0].unsqueeze(-1)
-c = 2 * a[:,:,1].unsqueeze(-1)
+# L = torch.zeros((4,5,3,2,2))
+# a = torch.ones((4,5,3,2))
+# a[:,:,:,1] *= 3
+# b = torch.ones((4,5,3))*0.5
 
-d = torch.cat([b, c], dim=2)
-print(d.shape)
-print(d)
+# std_x = a[:,:,:,0]
+# std_y = a[:,:,:,1]
+# print(std_x.shape, std_y.shape)
+
+# # L[:,:,:,0,0] = std_x
+# # L[:,:,:,1,0] = std_y
+# # L[:,:,:,1,1] = std_y*b
+# # print(L)
+
+# row1 = torch.stack([std_x, torch.zeros_like(std_x)], dim=-1)
+# print(row1.shape)
+# # print(row1)
+# row2 = torch.stack([std_y, std_y*b], dim=-1)
+# print(row2.shape)
+
+# L2 = torch.stack([row1, row2], dim=-2)
+# print(L2.shape)
+# print(L2)
+
+a = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
+b = np.array(a)
+
+print(b)
+print(np.mean(b, axis=0))
