@@ -24,16 +24,18 @@ dataset: "rounD"
 history_length: 5  # number of historical steps input to the model
 pred_length: 1  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
+n_gaussian: 3
+sample_times: 10
 
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
-behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_latest/training/behavior_net/rounD_b_seed_r4/checkpoints/ckpt_99.pt"
+behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_gmn_new2/training/behavior_net/rounD_nG3_NllAndL1_try3/checkpoints/ckpt_124.pt"
 safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
 use_neural_safety_mapping: False
 
 # Whether use conflict critic module (crash critic module)
-use_conflict_critic_module: True
+use_conflict_critic_module: False
 
 # Other inference simulation settings
 sim_resol: 0.4  # simulation resolution. unit: s

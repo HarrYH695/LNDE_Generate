@@ -34,7 +34,10 @@ class Trainer_gmn(object):
         self.output_dim = 4 * configs["pred_length"]  # x, y, cos_heading, sin_heading
         self.pred_length = configs["pred_length"]
         self.m_tokens = configs["max_num_vehicles"]
+
         self.n_gaussian = configs["n_gaussian"]
+        self.sample_times = configs["sample_times"]
+        self.epoch_thres = configs["epoch_thres"]
 
         # initialize networks
         self.net_G = define_G(
@@ -44,6 +47,15 @@ class Trainer_gmn(object):
 
         # Learning rate
         self.lr = configs["lr"]
+        self.warmup_steps = configs["warmup_steps"]
+        self.total_steps = configs["max_num_epochs"]
+        
+        self.lambda_H = configs["lambda_H"]
+        self.lambda_std = configs["lambda_std"]
+        self.lambda_corr = configs["lambda_corr"]
+        
+        self.lambda_reg_posi = configs["lambda_reg_posi"]
+        self.lambda_reg_angle = configs["lambda_reg_angle"]
 
         # define optimizers
         self.optimizer_G = optim.AdamW(self.net_G.parameters(), lr=self.lr, betas=(0.9,0.999), weight_decay=1e-4,  eps=1e-8)
@@ -55,7 +67,8 @@ class Trainer_gmn(object):
         self.exp_lr_scheduler_D = lr_scheduler.StepLR(
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
-        warmup_steps = 200
+        warmup_steps = self.warmup_steps
+        total_steps = self.total_steps
         def lr_lambda(step):
             if step < warmup_steps:
                 return step / warmup_steps
@@ -450,24 +463,23 @@ class Trainer_gmn(object):
 
             self.loss_nll = -gaussian_mixture.log_prob(self.gt[:,:,:2]).mean()
             
-            lambda_H = 5e-4  
+            lambda_H = self.lambda_H  
             entropy = -(pi_all * (pi_all+1e-8).log()).sum(-1).mean()
             self.loss_nll += lambda_H * entropy
 
-            lambda_std = 1e-3
+            lambda_std = self.lambda_std
             penalty_std = F.relu(1e-2 - std).pow(2).mean()
             self.loss_nll += lambda_std * penalty_std
 
-            lambda_corr = 1e-3
+            lambda_corr = self.lambda_corr
             penalty_corr = F.relu(torch.abs(corr) - 0.97).pow(2).mean()
             self.loss_nll += lambda_corr * penalty_corr
 
             #sample the output, multi-times
-            sample_times = configs["sample_times"]
             eps_sample = torch.zeros_like(mu)
-            for s_t in range(sample_times):
+            for s_t in range(self.sample_times):
                 eps_sample += torch.randn_like(mu)
-            eps_sample /= sample_times
+            eps_sample /= self.sample_times
             
             posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
             posi = (pi_all.unsqueeze(-1) * posi).sum(dim=2)
@@ -616,7 +628,7 @@ class Trainer_gmn(object):
 
             # self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
-            self.batch_loss_G = self.loss_nll + 1e-2*self.reg_loss_position + 1e-2*self.reg_loss_heading # + 0.5*self.G_adv_loss
+            self.batch_loss_G = self.loss_nll + self.lambda_reg_posi*self.reg_loss_position + self.lambda_reg_angle*self.reg_loss_heading # + 0.5*self.G_adv_loss
 
 
 
@@ -674,7 +686,6 @@ class Trainer_gmn(object):
         """
 
         self._load_checkpoint(start_id=0)
-
         # loop over the dataset multiple times
         for self.epoch_id in range(self.epoch_to_start, self.max_num_epochs):
             # ################## train #################
@@ -696,7 +707,7 @@ class Trainer_gmn(object):
                 # update G
                 set_requires_grad(self.net_D, False)
                 self.optimizer_G.zero_grad()
-                self._compute_loss_G()
+                self._compute_loss_G(epoch_threshold=self.epoch_thres)
                 self._backward_G()
                 self.optimizer_G.step()
                 # evaluate acc
@@ -734,7 +745,7 @@ class Trainer_gmn(object):
                 if (self.epoch_id + 1) % 10 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
             else:
-                if (self.epoch_id + 1) % 20 == 0:
+                if (self.epoch_id + 1) % 50 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
 
             ########### Update_LR Scheduler ##########

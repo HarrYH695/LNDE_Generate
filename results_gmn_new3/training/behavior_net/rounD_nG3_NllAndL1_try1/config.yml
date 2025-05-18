@@ -7,7 +7,7 @@ model: transformer  # transformer or bn_mlp
 history_length: 5  # number of historical steps input to the model
 pred_length: 1  # number of predicted steps output by the model
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
-n_gaussian: 2
+n_gaussian: 3
 
 # Training settings
 batch_size: 32

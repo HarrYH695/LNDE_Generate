@@ -34,5 +34,7 @@ import os
 # print(L2.shape)
 # print(L2)
 
-a = 5.0e-5
-print(a==0.00005)
+# a = np.zeros((3,4,2))
+# b = a[:,:,:,None]
+# print(b.shape)
+# print(b)
