@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     dump_rng_states(os.path.join(save_result_path, experiment_name))
 
-    # seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_latest/training/behavior_net/rounD_t1_r4/seeds.pkl"
+    # seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_gmn_new3/training/behavior_net/rounD_nG3_NllAndL1_try2/seeds.pkl"
     # load_rng_states(seed_file)
 
 
@@ -115,4 +115,4 @@ if __name__ == '__main__':
     m = Trainer_gmn(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_NllAndL1_try1
+# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_NllAndL1_try4

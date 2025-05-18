@@ -5,7 +5,7 @@ import yaml
 import warnings
 import shutil
 from tqdm import tqdm
-from simulation_modeling.simulation_inference import SimulationInference
+from simulation_modeling.simulation_inference_gmm import SimulationInference_gmm
 import pickle
 import numpy as np
 
@@ -55,11 +55,11 @@ if __name__ == '__main__':
     shutil.copyfile(args.config, save_path)
 
     # Initialize the simulation inference model.
-    simulation_inference_model = SimulationInference(configs=configs)
+    simulation_inference_model = SimulationInference_gmm(configs=configs)
 
-    dir_name = "rD_Trial_2"
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/" 
-    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/scene_videos/"
+    dir_name = "rD_gmm_2"
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/1/" 
+    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/scene_videos/"
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -68,8 +68,8 @@ if __name__ == '__main__':
     print(len(scenes_all)) 
 
     num = 0
-    for scene in tqdm(scenes_all[9800:]):
-        scene = "7279.pkl"
+    for scene in tqdm(scenes_all):
+        #scene = "7279.pkl"
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
         # scene_before = scene_data_file["states_before"]
@@ -78,6 +78,6 @@ if __name__ == '__main__':
             num += 1
             simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
     
-        break
+        #break
     print(num)
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

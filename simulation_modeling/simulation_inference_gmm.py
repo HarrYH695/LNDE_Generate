@@ -653,7 +653,7 @@ class SimulationInference_gmm(object):
         corr_all = []
         for i in range(max_time):
             TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y, pred_corr = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
-            break
+            # break
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
             TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
             traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)

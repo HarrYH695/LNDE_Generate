@@ -92,11 +92,11 @@ class TrafficSimulator_gmm(object):
             eps_sample += np.random.randn(*pred_mean.shape)
         eps_sample /= self.sample_times
         
-        print("-------in sampling:-------")
-        print(f"pred_mean:{pred_mean.shape}")
-        print(f"eps_sample:{eps_sample.shape}")
-        print(f"pred_pi:{pred_pi.shape}")
-        print(f"pred_L:{pred_L.shape}")
+        # print("-------in sampling:-------")
+        # print(f"pred_mean:{pred_mean.shape}")
+        # print(f"eps_sample:{eps_sample.shape}")
+        # print(f"pred_pi:{pred_pi.shape}")
+        # print(f"pred_L:{pred_L.shape}")
         
         posi = pred_mean + np.squeeze(pred_L @ np.expand_dims(eps_sample, -1), -1) 
         posi = np.sum(np.expand_dims(pred_pi, -1) * posi, axis=2)
@@ -127,16 +127,16 @@ class TrafficSimulator_gmm(object):
         input_matrix[torch.isnan(input_matrix)] = 0.0
 
         # run prediction
-        print(f"input_matrix:{input_matrix.shape}")
+        # print(f"input_matrix:{input_matrix.shape}")
         mean_pos, std_pos, corr, cos_sin_heading, pi_all, out_L = self.net_G(input_matrix)
 
 
-        print(f"mean_pos:{mean_pos.shape}")
-        print(f"std_pos:{std_pos.shape}")
-        print(f"corr:{corr.shape}")
-        print(f"cos_sin_heading:{cos_sin_heading.shape}")
-        print(f"pi_all:{pi_all.shape}")
-        print(f"out_L:{out_L.shape}")
+        # print(f"mean_pos:{mean_pos.shape}")
+        # print(f"std_pos:{std_pos.shape}")
+        # print(f"corr:{corr.shape}")
+        # print(f"cos_sin_heading:{cos_sin_heading.shape}")
+        # print(f"pi_all:{pi_all.shape}")
+        # print(f"out_L:{out_L.shape}")
 
         pred_mean_pos = mean_pos.detach().cpu().numpy()
         pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
@@ -144,7 +144,7 @@ class TrafficSimulator_gmm(object):
         pred_L = out_L.detach().cpu().numpy()
         pred_posi = self.sampling(pred_mean_pos, pred_pi, pred_L)
         pred_posi = np.squeeze(pred_posi, axis=0)
-        print(f"pred_posi:{pred_posi.shape}")
+        # print(f"pred_posi:{pred_posi.shape}")
 
         pred_lat = pred_posi[:,0:self.pred_length]
         pred_lon = pred_posi[:,self.pred_length:]
@@ -153,8 +153,8 @@ class TrafficSimulator_gmm(object):
 
         pred_vid = buff_vid
 
-        print(f"pred_lat:{pred_lat.shape}")
-        print(f"pred_lon:{pred_lon.shape}")
+        # print(f"pred_lat:{pred_lat.shape}")
+        # print(f"pred_lon:{pred_lon.shape}")
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, 0, 0, 0
 
 

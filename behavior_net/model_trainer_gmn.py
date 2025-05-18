@@ -685,7 +685,7 @@ class Trainer_gmn(object):
         In each minibatch, we perform gradient descent on the network parameters.
         """
 
-        self._load_checkpoint(start_id=0)
+        self._load_checkpoint(start_id=-1)
         # loop over the dataset multiple times
         for self.epoch_id in range(self.epoch_to_start, self.max_num_epochs):
             # ################## train #################

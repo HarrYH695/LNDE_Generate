@@ -106,12 +106,12 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    dir_name = "rD_gmm_1"
+    dir_name = "rD_gmm_2"
     save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/1/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
     coll_num = 0
-    for idx in tqdm(range(1)):
+    for idx in tqdm(range(10)):
         #print(f"----------------{idx}----------------")
         coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
         coll_num += coll
