@@ -115,4 +115,4 @@ if __name__ == '__main__':
     m = Trainer_gmn(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_NllAndL1_try4
+# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_NllAndL1_try6
