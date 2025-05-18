@@ -9,7 +9,7 @@ import json
 import pandas as pd
 import time
 import copy
-from simulation_modeling.traffic_simulator_gmm import TrafficSimulator
+from simulation_modeling.traffic_simulator_gmm import TrafficSimulator_gmm
 from simulation_modeling.crashcritic import CrashCritic
 from simulation_modeling.trajectory_interpolator import TrajInterpolator
 from simulation_modeling.vehicle_generator import AA_rdbt_TrafficGenerator, rounD_TrafficGenerator
@@ -21,7 +21,7 @@ from basemap import Basemap
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class SimulationInference(object):
+class SimulationInference_gmm(object):
     def __init__(self, configs):
 
         self.dataset = configs["dataset"]
@@ -48,7 +48,7 @@ class SimulationInference(object):
         self.max_m_steps = int((self.sim_wall_time / self.sim_resol) / self.rolling_step)
         self.traj_dirs, self.subfolder_data_proportion, self.subsubfolder_data_proportion = self._get_traj_dirs(path_to_traj_data=configs["init_traj_clips_dir"])
 
-        self.sim = TrafficSimulator(model=configs["model"], history_length=self.history_length, pred_length=self.pred_length, m_tokens=self.m_tokens, n_gaussian=self.n_gaussian,sample_times=self.sample_times,
+        self.sim = TrafficSimulator_gmm(model=configs["model"], history_length=self.history_length, pred_length=self.pred_length, m_tokens=self.m_tokens, n_gaussian=self.n_gaussian,sample_times=self.sample_times,
                                     checkpoint_dir=configs["behavior_model_ckpt_dir"],
                                     safety_mapper_ckpt_dir=configs["safety_mapper_ckpt_dir"], drivable_map_dir=configs["drivable_map_dir"], device=self.device,
                                     sim_remove_vehicle_area_map=configs["sim_remove_vehicle_area_map"], map_height=configs["map_height"], map_width=configs["map_width"])

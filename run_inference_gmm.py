@@ -5,7 +5,7 @@ import yaml
 import warnings
 import shutil
 from tqdm import tqdm
-from simulation_modeling.simulation_inference_gmm import SimulationInference
+from simulation_modeling.simulation_inference_gmm import SimulationInference_gmm
 import pickle
 import numpy as np
 import random
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     shutil.copyfile(args.config, save_path)
 
     # Initialize the simulation inference model.
-    simulation_inference_model = SimulationInference(configs=configs)
+    simulation_inference_model = SimulationInference_gmm(configs=configs)
     
     #test!
     #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
@@ -147,7 +147,7 @@ if __name__ == '__main__':
                         
                         #simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+5)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
-# python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
+# python run_inference_gmm.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
 
 # store results in : /nfs/turbo/coe-mcity/hanhy/LNDE_Results
 # baseline: 299
