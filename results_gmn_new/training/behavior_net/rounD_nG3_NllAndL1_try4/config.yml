@@ -16,7 +16,6 @@ lr_decay_step_size: 300  # The number of training epochs to conduct lr decay. lr
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.
 max_num_epochs: 2000  # maximum training epochs
 dataloader_num_workers: 8  # num_workers
-sample_times: 10 # sample times for generating x_input
 
 # Pre-trained safety mapping network
 safety_mapper_ckpt_dir: "data/training/behavior_net/AA_rdbt/safety_mapper_ckpt/safety_mapping_net.pt"

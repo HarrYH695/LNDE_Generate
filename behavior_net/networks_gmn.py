@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .bert import Embeddings, Block, Config
 from safety_mapping.safety_mapping_networks import define_safety_mapping_networks, load_pretrained_weights
 
@@ -95,10 +96,12 @@ class PredictionsHeads(nn.Module):
     Also prediction cos and sin headings.
     """
 
-    def __init__(self, h_dim, output_dim, n_gaussian):
+    def __init__(self, h_dim, output_dim, n_gaussian, tem_softmax=1.3, corr_limit=0.99):
         super().__init__()
         # number of gaussian
         self.n_gaussian = n_gaussian
+        self.tem_softmax = tem_softmax
+        self.corr_limit = corr_limit
 
         # x, y position
         self.out_net_mean = nn.Linear(in_features=h_dim, out_features=int(output_dim * self.n_gaussian / 2), bias=True)
@@ -126,9 +129,10 @@ class PredictionsHeads(nn.Module):
         out_corr_raw = self.out_net_corr(x)
         out_pi_raw = self.out_pi(x)
         
-        out_pi = self.softmax(out_pi_raw)  #[B, N=32, 3]
-        out_corr = self.tanh(out_corr_raw) #[B, N=32, 3]
-        out_std = self.elu(out_std_raw) + 1
+        out_pi = self.softmax(out_pi_raw / self.tem_softmax)  #[B, N=32, 3]
+        out_corr = self.tanh(out_corr_raw) * self.corr_limit #[B, N=32, 3]
+        out_std = torch.minimum(F.softplus(out_std_raw) + 1e-3, torch.full_like(out_std_raw, 0.5))
+        #out_std = self.elu(out_std_raw) + 1
         #out_std = out_std_raw ** 2
         #out_std = self.softplus(out_std_raw)
 

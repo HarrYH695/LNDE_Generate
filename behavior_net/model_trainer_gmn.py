@@ -9,6 +9,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 import torch.distributions as distributions
+import torch.nn.functional as F
 
 from .networks_gmn import define_G, define_D, set_requires_grad
 from .loss import UncertaintyRegressionLoss, GANLoss
@@ -54,7 +55,7 @@ class Trainer_gmn(object):
         self.exp_lr_scheduler_D = lr_scheduler.StepLR(
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
-        warmup_steps = 1000
+        warmup_steps = 200
         def lr_lambda(step):
             if step < warmup_steps:
                 return step / warmup_steps
@@ -449,9 +450,26 @@ class Trainer_gmn(object):
 
             self.loss_nll = -gaussian_mixture.log_prob(self.gt[:,:,:2]).mean()
             
-            #sample the output
-            eps = torch.randn_like(mu)
-            posi = mu + (L @ eps.unsqueeze(-1)).squeeze(-1)    
+            lambda_H = 5e-4  
+            entropy = -(pi_all * (pi_all+1e-8).log()).sum(-1).mean()
+            self.loss_nll += lambda_H * entropy
+
+            lambda_std = 1e-3
+            penalty_std = F.relu(1e-2 - std).pow(2).mean()
+            self.loss_nll += lambda_std * penalty_std
+
+            lambda_corr = 1e-3
+            penalty_corr = F.relu(torch.abs(corr) - 0.97).pow(2).mean()
+            self.loss_nll += lambda_corr * penalty_corr
+
+            #sample the output, multi-times
+            sample_times = configs["sample_times"]
+            eps_sample = torch.zeros_like(mu)
+            for s_t in range(sample_times):
+                eps_sample += torch.randn_like(mu)
+            eps_sample /= sample_times
+            
+            posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
             posi = (pi_all.unsqueeze(-1) * posi).sum(dim=2)
 
             x_input = torch.cat([posi, cos_sin_heading], dim=-1)
@@ -575,8 +593,7 @@ class Trainer_gmn(object):
             self.batch_mean_pi.append(np.mean(pi_pred_i))
 
     
-    def _compute_loss_G(self, epoch_threshold=30):
-        
+    def _compute_loss_G(self, epoch_threshold=50):
         if (self.epoch_id + 1) < epoch_threshold:
             self.batch_loss_G = self.loss_nll
         else: 
@@ -599,7 +616,7 @@ class Trainer_gmn(object):
 
             # self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
-            self.batch_loss_G = self.loss_nll + 0.05*self.reg_loss_position + 0.05*self.reg_loss_heading # + 0.5*self.G_adv_loss
+            self.batch_loss_G = self.loss_nll + 1e-2*self.reg_loss_position + 1e-2*self.reg_loss_heading # + 0.5*self.G_adv_loss
 
 
 
@@ -679,7 +696,7 @@ class Trainer_gmn(object):
                 # update G
                 set_requires_grad(self.net_D, False)
                 self.optimizer_G.zero_grad()
-                self._compute_loss_G(epoch_threshold=100)
+                self._compute_loss_G()
                 self._backward_G()
                 self.optimizer_G.step()
                 # evaluate acc
@@ -710,10 +727,10 @@ class Trainer_gmn(object):
 
             ########### Update_Checkpoints ###########
             ##########################################
-            if (self.epoch_id + 1) <= 100:
+            if (self.epoch_id + 1) <= 200:
                 if (self.epoch_id + 1) % 5 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 300:
+            elif (self.epoch_id + 1) <= 500:
                 if (self.epoch_id + 1) % 10 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
             else:
