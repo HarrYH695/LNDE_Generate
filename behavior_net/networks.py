@@ -130,8 +130,11 @@ class PredictionsHeads(nn.Module):
     Also prediction cos and sin headings.
     """
 
-    def __init__(self, h_dim, output_dim):
+    def __init__(self, h_dim, output_dim, corr_limit=0.99):
         super().__init__()
+
+        self.corr_limit = corr_limit
+
         # x, y position
         self.out_net_mean = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
         self.out_net_std = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
@@ -146,28 +149,29 @@ class PredictionsHeads(nn.Module):
 
     def forward(self, x):
 
-        # # shape x: batch_size x m_token x m_state
-        # out_mean = self.out_net_mean(x)
-        # out_std_raw = self.out_net_std(x)
-        # corr = self.out_net_corr(x)
-
-        # out_std = self.elu(out_std_raw) + 1
-        # #out_std = out_std_raw ** 2
-        # #out_std = self.softplus(out_std_raw)
-        
-        # out_corr = self.tanh(corr)
-        # out_cos_sin_heading = self.out_net_cos_sin_heading(x)
-
-        # return out_mean, out_std, out_corr, out_cos_sin_heading
-
-
         # shape x: batch_size x m_token x m_state
         out_mean = self.out_net_mean(x)
-        out_std = self.elu(self.out_net_std(x)) + 1
+        out_std_raw = self.out_net_std(x)
+        corr = self.out_net_corr(x)
 
+        out_std = torch.minimum(F.softplus(out_std_raw) + 1e-3, torch.full_like(out_std_raw, 0.5))
+        # out_std = self.elu(out_std_raw) + 1
+        # out_std = out_std_raw ** 2
+        # out_std = self.softplus(out_std_raw)
+        
+        out_corr = self.tanh(corr) * self.corr_limit
         out_cos_sin_heading = self.out_net_cos_sin_heading(x)
 
-        return out_mean, out_std, out_cos_sin_heading
+        return out_mean, out_std, out_corr, out_cos_sin_heading
+
+
+        # # shape x: batch_size x m_token x m_state
+        # out_mean = self.out_net_mean(x)
+        # out_std = self.elu(self.out_net_std(x)) + 1
+
+        # out_cos_sin_heading = self.out_net_cos_sin_heading(x)
+
+        # return out_mean, out_std, out_cos_sin_heading
 
 
 class SafetyMapper(nn.Module):

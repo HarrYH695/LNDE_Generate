@@ -33,8 +33,8 @@ def define_G(model, input_dim, output_dim, m_tokens, n_gaussian=3):
     elif model == 'transformer':
         bert_cfg = Config()
         bert_cfg.dim = h_dim
-        bert_cfg.n_layers = 4
-        bert_cfg.n_heads = 4
+        bert_cfg.n_layers = 6
+        bert_cfg.n_heads = 6
         bert_cfg.max_len = m_tokens
         Backbone = Transformer(input_dim=M.output_dim, m_tokens=m_tokens, cfg=bert_cfg)
     else:

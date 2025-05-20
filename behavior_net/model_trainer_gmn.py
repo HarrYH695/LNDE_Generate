@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import json
 import random
+import math
 
 import torch
 import torch.optim as optim
@@ -73,7 +74,8 @@ class Trainer_gmn(object):
             if step < warmup_steps:
                 return step / warmup_steps
             progress = (step - warmup_steps) / (total_steps - warmup_steps)
-            return 0.001 + 0.999 * 0.5 * (1 + torch.cos(torch.pi * progress))  # eta_min=1e-3*lr
+            lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
+            return lr_cos  # eta_min=1e-3*lr
         
         self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
 

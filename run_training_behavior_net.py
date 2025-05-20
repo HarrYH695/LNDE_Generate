@@ -15,7 +15,7 @@ from behavior_net import Trainer
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
-parser.add_argument('--save-result-path', type=str, default=r'./results_latest/training/behavior_net',
+parser.add_argument('--save-result-path', type=str, default=r'./results_joint_gaussian_MultiRollout/training/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs/AA_rdbt_behavior_net_training.yml')
@@ -99,10 +99,10 @@ if __name__ == '__main__':
     # seed = 2025
     # set_seed(seed)
 
-    #dump_rng_states(os.path.join(save_result_path, experiment_name))
+    dump_rng_states(os.path.join(save_result_path, experiment_name))
 
-    seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_latest/training/behavior_net/rounD_t1_r4/seeds.pkl"
-    load_rng_states(seed_file)
+    # seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_latest/training/behavior_net/rounD_t1_r4/seeds.pkl"
+    # load_rng_states(seed_file)
 
 
     # Initialize the DataLoader
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     m = Trainer(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_b_seed_r4
+# python run_training_behavior_net.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_t1
 # 2: corr和std分离 
 # 3:mae->mse   
 # 2_r and 2r2: repeat 2 , 2r2 record std and corr

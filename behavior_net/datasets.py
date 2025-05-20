@@ -146,9 +146,9 @@ class MTLTrajectoryPredictionDataset(Dataset):
 def get_loaders(configs):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD':
-        training_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["pred_length"],
+        training_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["rollout_num"],
                                                       max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"])
-        val_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["pred_length"],
+        val_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["rollout_num"],
                                                  max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"])
     else:
         raise NotImplementedError(

@@ -24,12 +24,12 @@ dataset: "rounD"
 history_length: 5  # number of historical steps input to the model
 pred_length: 1  # number of predicted steps output by the model
 m_tokens: 32  # maximum number of vehicles that can be handled by the model
-n_gaussian: 2
+n_gaussian: 3
 sample_times: 10
 
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
-behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_gmn_new3/training/behavior_net/rounD_nG3_NllAndL1_try2/checkpoints/ckpt_124.pt"
-safety_mapper_ckpt_dir: "data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
+behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_new3/training/behavior_net/rounD_nG3_NllAndL1_try4/checkpoints/ckpt_199.pt"
+safety_mapper_ckpt_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
 use_neural_safety_mapping: False
@@ -44,7 +44,7 @@ interpolate_flag: False # Interpolate the trajectory to a finer time resolution 
 intep_steps: 3  # Number of steps to inter between steps. E.g., resolution is 0.4s intep_steps=3 then new resolution is 0.1s
 
 # Simulation metrics dependencies
-ROI_map_dir: "data/inference/rounD/ROIs-map"  # Used for metric analysis.
+ROI_map_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/ROIs-map"  # Used for metric analysis.
 PET_configs: # This is pixel coordinates of the basemap image
   width_start: 550
   width_end: 1050
@@ -62,16 +62,16 @@ save_viz_flag: True  # Save simulation visualizations
 save_fps: 10
 
 # Data needed for the simulation. E.g., map image, initial vehicle states, etc.
-basemap_dir: "data/inference/rounD/basemap/rounD-official-map.png"
-drivable_map_dir: &drivable_map_dir "data/inference/rounD/drivablemap/rounD-drivablemap.jpg"
-sim_remove_vehicle_area_map: "data/inference/rounD/ROIs-map/rounD-sim-remove-vehicle-area-map.jpg"  # E.g., exits.
-entrance_map_dir: &entrance_map_dir "data/inference/rounD/ROIs-map/entrance"  # Only needed if want to use lane_based_safety_check for initialization.
+basemap_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/basemap/rounD-official-map.png"
+drivable_map_dir: &drivable_map_dir "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/drivablemap/rounD-drivablemap.jpg"
+sim_remove_vehicle_area_map: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/ROIs-map/rounD-sim-remove-vehicle-area-map.jpg"  # E.g., exits.
+entrance_map_dir: &entrance_map_dir "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/ROIs-map/entrance"  # Only needed if want to use lane_based_safety_check for initialization.
 map_height: &map_height 936  # The map height and width ratio should be consistent with the basemap and drivable map pictures.
 map_width: &map_width 1678
-init_traj_clips_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/val/"  # For initialization.
+init_traj_clips_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/val"  # For initialization.
 traffic_generator_config:
   method: Poisson  # Poisson or Random
-  gen_veh_states_dir: "data/inference/rounD/simulation_initialization/gen_veh_states/rounD/"  # The states of generated vehicle at entrance during the simulation
+  gen_veh_states_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/simulation_initialization/gen_veh_states/rounD/"  # The states of generated vehicle at entrance during the simulation
   check_safety_method: lane_based_safety_check  # lane_based_safety_check or uniform_safety_check
   uniform_safety_buffer: 5
   same_lane_safety_buffer: 8  # for lane based check

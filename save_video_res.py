@@ -57,7 +57,7 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference_gmm(configs=configs)
 
-    dir_name = "rD_gmm_2"
+    dir_name = "rD_gmm_6"
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/1/" 
     save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/scene_videos/"
 
@@ -68,16 +68,17 @@ if __name__ == '__main__':
     print(len(scenes_all)) 
 
     num = 0
-    for scene in tqdm(scenes_all):
+    for scene in scenes_all:
         #scene = "7279.pkl"
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
+        collision_time = scene_data_file["crash_step"]
         # scene_before = scene_data_file["states_before"]
         # print(len(scene_before))
         if len(scene_data) >= 7:
             num += 1
             simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
-    
+            print(collision_time)
         #break
-    print(num)
+    print(f"video_num:{num}")
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml
