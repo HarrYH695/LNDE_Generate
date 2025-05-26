@@ -6,7 +6,7 @@ path_to_traj_data: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/training/behavior_
 model: transformer  # transformer or bn_mlp
 history_length: 5  # number of historical steps input to the model
 pred_length: 1  # number of predicted steps output by the model
-rollout_num: 10
+rollout_num: 1
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
 n_gaussian: 3
 
@@ -15,11 +15,11 @@ batch_size: 32
 lr: 5.0e-5  # learning rate
 lr_decay_step_size: 300  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.
-warmup_steps: 100
-max_num_epochs: 1000  # maximum training epochs
+warmup_steps: 20
+max_num_epochs: 400  # maximum training epochs
 dataloader_num_workers: 8  # num_workers
 sample_times: 10  # sample times for generating x_input
-epoch_thres: -1  # when to add L1 loss
+epoch_thres: 1000  # when to add L1 loss
 lambda_H: 5.0e-4
 lambda_std: 1.0e-3
 lambda_corr: 1.0e-3

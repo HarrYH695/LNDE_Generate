@@ -529,7 +529,7 @@ class Trainer(object):
             # print(f"corr:{corr.shape}")
             # print(f"cos_sin_heading:{cos_sin_heading.shape}")
 
-            pred_lat, pred_lon = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
+            pred_lat, pred_lon, pred_cos, pred_sin = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
             pred_lat = pred_lat[:,:,roll_i]
             pred_lon = pred_lon[:,:,self.rollout_num + roll_i]
 
@@ -632,6 +632,7 @@ class Trainer(object):
         sample_at_step0 = self.rollout_pos[0]
 
         for roll_i in range(self.rollout_num):
+            pass
 
 
         G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]

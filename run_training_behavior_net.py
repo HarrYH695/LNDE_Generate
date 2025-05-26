@@ -15,7 +15,7 @@ from behavior_net import Trainer
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
-parser.add_argument('--save-result-path', type=str, default=r'./results_joint_gaussian_MultiRollout/training/behavior_net',
+parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_joint_gaussian_MultiRollout/training/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs/AA_rdbt_behavior_net_training.yml')
