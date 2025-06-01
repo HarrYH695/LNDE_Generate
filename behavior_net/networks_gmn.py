@@ -46,8 +46,6 @@ def define_G(model, input_dim, output_dim, m_tokens, n_gaussian=3):
 
     return nn.Sequential(M, Backbone, P)
 
-
-
 class PositionalMapping(nn.Module):
     """
     Positional mapping Layer.
@@ -120,15 +118,38 @@ class PredictionsHeads(nn.Module):
         # pi_i, i = range(n_gaussian)
         self.out_pi = nn.Linear(in_features=h_dim, out_features=n_gaussian, bias=True)
 
-    def forward(self, x):
+    def forward(self, x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True, if_pi_grad=True):
 
         # shape x: batch_size x m_token x m_state
-        out_mean = self.out_net_mean(x)
-        out_cos_sin_heading = self.out_net_cos_sin_heading(x)
-        out_std_raw = self.out_net_std(x)
-        out_corr_raw = self.out_net_corr(x)
-        out_pi_raw = self.out_pi(x)
+        # go through the network
+        if not if_mean_grad:
+            with torch.no_grad():
+                out_mean = self.out_net_mean(x)
+        else:
+            out_mean = self.out_net_mean(x)
+
+        if not if_std_grad:
+            with torch.no_grad():
+                out_std_raw = self.out_net_std(x)
+        else:
+            out_std_raw = self.out_net_std(x)
+
+        if not if_corr_grad:
+            with torch.no_grad():
+                out_corr_raw = self.out_net_corr(x)
+        else:
+            out_corr_raw = self.out_net_corr(x)
+
+        if not if_pi_grad:
+            with torch.no_grad():
+                out_pi_raw = self.out_pi(x)
+        else:
+            out_pi_raw = self.out_pi(x)
         
+
+        out_cos_sin_heading = self.out_net_cos_sin_heading(x)
+
+
         out_pi = self.softmax(out_pi_raw / self.tem_softmax)  #[B, N=32, 3]
         out_corr = self.tanh(out_corr_raw) * self.corr_limit #[B, N=32, 3]
         out_std = torch.minimum(F.softplus(out_std_raw) + 1e-3, torch.full_like(out_std_raw, 0.5))
@@ -170,6 +191,47 @@ class Transformer(nn.Module):
         for block in self.blocks:
             h = block(h, None)
         return h
+
+class Network_G(nn.Module):
+    def __init__(self, model, input_dim, output_dim, m_tokens, n_gaussian=3):
+        super().__init__()
+
+        h_dim = 256
+
+        # define input positional mapping
+        self.M = PositionalMapping(input_dim=input_dim, L=4, pos_scale=0.01, heading_scale=1.0)
+
+        # define backbone networks
+        if model == 'simple_mlp':
+            self.Backbone = SimpleMLP(input_dim=M.output_dim, h_dim=h_dim, m_tokens=m_tokens)
+        elif model == 'bn_mlp':
+            self.Backbone = BnMLP(input_dim=M.output_dim, h_dim=h_dim, m_tokens=m_tokens)
+        elif model == 'transformer':
+            bert_cfg = Config()
+            bert_cfg.dim = h_dim
+            bert_cfg.n_layers = 4
+            bert_cfg.n_heads = 4
+            bert_cfg.max_len = m_tokens
+            self.Backbone = Transformer(input_dim=M.output_dim, m_tokens=m_tokens, cfg=bert_cfg)
+        else:
+            raise NotImplementedError(
+                'Wrong backbone model name %s (choose one from [simple_mlp, bn_mlp, transformer])' % model)
+
+        # define prediction heads
+        self.P = PredictionsHeads(h_dim=h_dim, output_dim=output_dim, n_gaussian=n_gaussian)
+
+        # self.if_mean_grad = True
+        # self.if_std_grad=True
+        # self.if_corr_grad=True 
+        # self.if_pi_grad=True
+
+    def forward(self, x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True, if_pi_grad=True):
+        x = self.M(x)
+        x = self.Backbone(x)
+
+        out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L = self.P(x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True, if_pi_grad=True)
+
+        return out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L
 
 
 

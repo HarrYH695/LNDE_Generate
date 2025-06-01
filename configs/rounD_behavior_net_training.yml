@@ -12,7 +12,7 @@ n_gaussian: 3
 
 # Training settings
 batch_size: 32
-lr: 5.0e-5  # learning rate
+lr: 1.0e-4 #5.0e-5  # learning rate
 lr_decay_step_size: 300  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.
 warmup_steps: 20

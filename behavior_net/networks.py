@@ -138,7 +138,7 @@ class PredictionsHeads(nn.Module):
         # x, y position
         self.out_net_mean = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
         self.out_net_std = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
-        #self.out_net_corr = nn.Linear(in_features=h_dim, out_features=1, bias=True)
+        self.out_net_corr = nn.Linear(in_features=h_dim, out_features=1, bias=True)
 
         self.elu = torch.nn.ELU()
         self.tanh = torch.nn.Tanh()
@@ -154,7 +154,7 @@ class PredictionsHeads(nn.Module):
         out_std_raw = self.out_net_std(x)
         corr = self.out_net_corr(x)
 
-        out_std = torch.minimum(F.softplus(out_std_raw) + 1e-3, torch.full_like(out_std_raw, 0.5))
+        out_std = self.softplus(out_std_raw) + 1e-3
         # out_std = self.elu(out_std_raw) + 1
         # out_std = out_std_raw ** 2
         # out_std = self.softplus(out_std_raw)

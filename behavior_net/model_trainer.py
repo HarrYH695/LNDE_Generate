@@ -518,10 +518,11 @@ class Trainer(object):
         self.gt[torch.isnan(self.gt)] = 0.0
 
         x_input = self.x
-        self.G_pred_mean, self.G_pred_std, self.G_pred_corr = [], [], []
+        self.G_pred_mean_lat, self.G_pred_mean_lon, self.G_pred_std, self.G_pred_corr = [], [], [], []
         self.rollout_pos = []
+        self.G_pred_cos, self.G_pred_sin = [], []
 
-        # new forward, with joint gaussian
+        # new forward, with joint gaussian, multi-rollout
         for roll_i in range(rollout):
             mu, std, corr, cos_sin_heading = self.net_G(x_input)
             # print(f"mu:{mu.shape}")
@@ -530,18 +531,45 @@ class Trainer(object):
             # print(f"cos_sin_heading:{cos_sin_heading.shape}")
 
             pred_lat, pred_lon, pred_cos, pred_sin = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
-            pred_lat = pred_lat[:,:,roll_i]
-            pred_lon = pred_lon[:,:,self.rollout_num + roll_i]
+            
+            pred_lat = pred_lat * (self.rollout_mask[:,:,roll_i].unsqueeze(-1))
+            pred_lon = pred_lon * (self.rollout_mask[:,:,self.rollout_num + roll_i].unsqueeze(-1))
+            pred_cos = pred_cos * (self.rollout_mask[:,:,self.rollout_num * 2 + roll_i].unsqueeze(-1))
+            pred_sin = pred_sin * (self.rollout_mask[:,:,self.rollout_num * 3 + roll_i].unsqueeze(-1))
 
-            x_pred = x_pred * self.rollout_mask[:,:,roll_i:roll_i+4]
-            print(f"x_pred:{x_pred.shape}")
-            x_input = torch.stack([x_input[:,:,4:], x_pred], dim=-1)
-            print(f"x_input:{x_input.shape}")
+            print(f"pred_lat:{pred_lat.shape}")
+            print(f"pred_lon:{pred_lon.shape}")
+            print(f"pred_cos:{pred_cos.shape}")
+            print(f"pred_sin:{pred_sin.shape}")
 
-            self.rollout_pos.append(x_pred)
-            self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
-            self.G_pred_std.append(std)
-            self.G_pred_corr.append(corr)
+            lat_old = x_input[:,:,1:5]
+            lon_old = x_input[:,:,6:10]
+            cos_old = x_input[:,:,11:15]
+            sin_old = x_input[:,:,16:20]
+
+            x_input = torch.cat([lat_old, pred_lat, lon_old, pred_lon, cos_old, pred_cos, sin_old, pred_sin], dim=-1)
+
+            print(f"x_input_roll_{roll_i}:{x_input.shape}")
+
+            self.G_pred_mean_lat.append(pred_lat)
+            self.G_pred_mean_lon.append(pred_lon)
+            self.G_pred_cos.append(pred_cos)
+            self.G_pred_sin.append(pred_sin)
+
+        pred_traj = self.G_pred_mean_lat[0]
+        for i in range(1, self.rollout_num):
+            pred_traj = torch.cat([pred_traj, self.G_pred_mean_lat[i]])
+
+        for i in range(self.rollout_num):
+            pred_traj = torch.cat([pred_traj, self.G_pred_mean_lon[i]])
+
+        for i in range(self.rollout_num):
+            pred_traj = torch.cat([pred_traj, self.G_pred_cos[i]])
+
+        for i in range(self.rollout_num):
+            pred_traj = torch.cat([pred_traj, self.G_pred_sin[i]])
+        
+        self.rollout_pos.append(pred_traj)
             
             #print(f"x_input:{x_input.shape}")
 
@@ -562,7 +590,7 @@ class Trainer(object):
         #     self.G_pred_std.append(std)
         #     self.G_pred_corr.append(corr)
             
-        #     #print(f"x_input:{x_input.shape}")
+            #print(f"x_input:{x_input.shape}")
 
 
         # #old forward, no joint gaussian
@@ -631,13 +659,8 @@ class Trainer(object):
         #G_pred_std_at_step0 = self.G_pred_std[0]
         sample_at_step0 = self.rollout_pos[0]
 
-        for roll_i in range(self.rollout_num):
-            pass
-
-
         G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
         #G_pred_std_pos_at_step0 = G_pred_std_at_step0
-
 
         gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
         gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
@@ -793,73 +816,75 @@ class Trainer(object):
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 self._forward_pass(batch, rollout=self.rollout_num)
+                break
+            
+            break
+            #     # update D
+            #     set_requires_grad(self.net_D, True)
+            #     self.optimizer_D.zero_grad()
+            #     self._compute_loss_D()
+            #     self._backward_D()
+            #     self.optimizer_D.step()
                 
-                # update D
-                set_requires_grad(self.net_D, True)
-                self.optimizer_D.zero_grad()
-                self._compute_loss_D()
-                self._backward_D()
-                self.optimizer_D.step()
-                
-                # update G
-                set_requires_grad(self.net_D, False)
-                self.optimizer_G.zero_grad()
-                self._compute_loss_G()
-                self._backward_G()
-                self.optimizer_G.step()
-                # evaluate acc
-                self._compute_acc()
+            #     # update G
+            #     set_requires_grad(self.net_D, False)
+            #     self.optimizer_G.zero_grad()
+            #     self._compute_loss_G()
+            #     self._backward_G()
+            #     self.optimizer_G.step()
+            #     # evaluate acc
+            #     self._compute_acc()
 
-                self._collect_running_batch_states()
-                self._update_logfile_batch_train()
-                # if self.batch_id == 5:
-                #     break
-            self._collect_epoch_states()
+            #     self._collect_running_batch_states()
+            #     self._update_logfile_batch_train()
+            #     # if self.batch_id == 5:
+            #     #     break
+            # self._collect_epoch_states()
 
 
-            # ################## Eval ##################
-            ##########################################
-            print('Begin evaluation...')
-            self._clear_cache()
-            self.is_training = False
-            self.net_G.eval()  # Set model to eval mode
+            # # ################## Eval ##################
+            # ##########################################
+            # print('Begin evaluation...')
+            # self._clear_cache()
+            # self.is_training = False
+            # self.net_G.eval()  # Set model to eval mode
 
-            # Iterate over data.
-            for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
-                with torch.no_grad():
-                    self._forward_pass(batch, rollout=self.rollout_num)
-                    self._compute_loss_G()
-                    self._compute_loss_D()
-                    self._compute_acc()
-                self._collect_running_batch_states()
-                # if self.batch_id == 5:
-                #     break
-            self._collect_epoch_states()
+            # # Iterate over data.
+            # for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
+            #     with torch.no_grad():
+            #         self._forward_pass(batch, rollout=self.rollout_num)
+            #         self._compute_loss_G()
+            #         self._compute_loss_D()
+            #         self._compute_acc()
+            #     self._collect_running_batch_states()
+            #     # if self.batch_id == 5:
+            #     #     break
+            # self._collect_epoch_states()
 
-            ########### Update_Checkpoints ###########
-            ##########################################
-            if (self.epoch_id + 1) <= 200:
-                if (self.epoch_id + 1) % 5 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 500:
-                if (self.epoch_id + 1) % 10 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
-            else:
-                if (self.epoch_id + 1) % 20 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
+            # ########### Update_Checkpoints ###########
+            # ##########################################
+            # if (self.epoch_id + 1) <= 200:
+            #     if (self.epoch_id + 1) % 5 == 0:
+            #         self._update_checkpoints(epoch_id=self.epoch_id)
+            # elif (self.epoch_id + 1) <= 500:
+            #     if (self.epoch_id + 1) % 10 == 0:
+            #         self._update_checkpoints(epoch_id=self.epoch_id)
+            # else:
+            #     if (self.epoch_id + 1) % 20 == 0:
+            #         self._update_checkpoints(epoch_id=self.epoch_id)
 
-            ########### Update_LR Scheduler ##########
-            ##########################################
-            self._update_lr_schedulers()
+            # ########### Update_LR Scheduler ##########
+            # ##########################################
+            # self._update_lr_schedulers()
 
-            ############## Update logfile ############
-            ##########################################
-            self._update_logfile()
-            self._visualize_logfile()
+            # ############## Update logfile ############
+            # ##########################################
+            # self._update_logfile()
+            # self._visualize_logfile()
 
-            ########### Visualize Prediction #########
-            ##########################################
-            # self._visualize_prediction()
+            # ########### Visualize Prediction #########
+            # ##########################################
+            # # self._visualize_prediction()
 
         self.writer.close()
 

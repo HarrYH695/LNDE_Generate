@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.distributions as distributions
 import torch.nn.functional as F
 
-from .networks_gmn import define_G, define_D, set_requires_grad
+from .networks_gmn import define_G, define_D, set_requires_grad, Network_G
 from .loss import UncertaintyRegressionLoss, GANLoss
 from .metric import RegressionAccuracy
 from . import utils
@@ -41,8 +41,10 @@ class Trainer_gmn(object):
         self.epoch_thres = configs["epoch_thres"]
 
         # initialize networks
-        self.net_G = define_G(
-            configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
+        # self.net_G = define_G(
+        #     configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
+        #     m_tokens=self.m_tokens, n_gaussian=self.n_gaussian).to(device)
+        self.net_G = Network_G(configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
             m_tokens=self.m_tokens, n_gaussian=self.n_gaussian).to(device)
         self.net_D = define_D(input_dim=self.output_dim).to(device)
 
@@ -527,30 +529,34 @@ class Trainer_gmn(object):
 
 
             # ----------------method 3: L1_Loss----------------
-            mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input)
-
-            # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
-            mu_1 = mu[:,:,0,:]
-            std_1 = std[:,:,0,:]
-            corr_1 = corr[:,:,0].unsqueeze(-1)
-
-            mu_2 = mu[:,:,1,:]
-            std_2 = std[:,:,1,:]
-            corr_2 = corr[:,:,1].unsqueeze(-1)
-
-            mu_3 = mu[:,:,2,:]
-            std_3 = std[:,:,2,:]
-            corr_3 = corr[:,:,2].unsqueeze(-1)
-
-            gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-            gt_cos_sin_heading, mask_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
-
-            self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
-
             if self.epoch_id <= 20:
-                L1_mu_1 = self.regression_loss_func_pos(y_pred_mean=mu_1 * self.rollout_mask[:,:,:2], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-                L1_mu_2 = self.regression_loss_func_pos(y_pred_mean=mu_2 * self.rollout_mask[:,:,:2], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-                L1_mu_3 = self.regression_loss_func_pos(y_pred_mean=mu_3 * self.rollout_mask[:,:,:2], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+                mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=True, if_std_grad=False, if_corr_grad=False, if_pi_grad=False)
+
+                # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
+                mu_1 = mu[:,:,0,:]
+                std_1 = std[:,:,0,:]
+                corr_1 = corr[:,:,0].unsqueeze(-1)
+
+                mu_2 = mu[:,:,1,:]
+                std_2 = std[:,:,1,:]
+                corr_2 = corr[:,:,1].unsqueeze(-1)
+
+                mu_3 = mu[:,:,2,:]
+                std_3 = std[:,:,2,:]
+                corr_3 = corr[:,:,2].unsqueeze(-1)
+
+                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                gt_cos_sin_heading, mask_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+
+                self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+
+                posi_1 = (mu_1 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
+                posi_2 = (mu_2 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
+                posi_3 = (mu_3 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
+
+                L1_mu_1 = self.regression_loss_func_pos(y_pred_mean=posi_1, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+                L1_mu_2 = self.regression_loss_func_pos(y_pred_mean=posi_2, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+                L1_mu_3 = self.regression_loss_func_pos(y_pred_mean=posi_3, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
 
                 L1_mu_all = torch.stack([L1_mu_1, L1_mu_2, L1_mu_3])
                 L1_mu_min, idx_mu = L1_mu_all.min(0)
@@ -558,11 +564,11 @@ class Trainer_gmn(object):
                 self.loss_nll = L1_mu_min + self.reg_loss_heading
 
                 if idx_mu == 0:
-                    posi = mu_1
+                    posi = posi_1
                 elif idx == 1:
-                    posi = mu_2
+                    posi = posi_2
                 else:
-                    posi = mu_3
+                    posi = posi_3
 
                 x_input = torch.cat([posi, cos_sin_heading], dim=-1)
                 x_input = x_input * self.rollout_mask
@@ -573,20 +579,45 @@ class Trainer_gmn(object):
                 self.G_pred_pi.append(pi_all)
 
             elif self.epoch_id <= 45:
+                mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=False, if_std_grad=True, if_corr_grad=True, if_pi_grad=False)
 
+                # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
+                mu_1 = mu[:,:,0,:]
+                std_1 = std[:,:,0,:]
+                corr_1 = corr[:,:,0].unsqueeze(-1)
+                L_1 = L[:,:,0,:,:]
+    
+                mu_2 = mu[:,:,1,:]
+                std_2 = std[:,:,1,:]
+                corr_2 = corr[:,:,1].unsqueeze(-1)
+                L_2 = L[:,:,1,:,:]
+    
+                mu_3 = mu[:,:,2,:]
+                std_3 = std[:,:,2,:]
+                corr_3 = corr[:,:,2].unsqueeze(-1)
+                L_3 = L[:,:,2,:,:]
+    
+                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                gt_cos_sin_heading, mask_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+    
+                self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+                
                 eps1, eps2 = self._sampling_from_standard_gaussian(mu_1)
 
                 x_input_1 = self._sampling_from_mu_and_std(mu_1, std_1, corr_1, eps1, eps2)
                 x_input_2 = self._sampling_from_mu_and_std(mu_2, std_2, corr_2, eps1, eps2)
                 x_input_3 = self._sampling_from_mu_and_std(mu_3, std_3, corr_3, eps1, eps2)
 
-                x_input_1 = x_input_1 * self.rollout_mask[:,:,:2]
-                x_input_2 = x_input_2 * self.rollout_mask[:,:,:2]
-                x_input_3 = x_input_3 * self.rollout_mask[:,:,:2]
+                x_input_1 = (x_input_1 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
+                x_input_2 = (x_input_2 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
+                x_input_3 = (x_input_3 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
 
                 L1_loss_1 = self.regression_loss_func_pos(y_pred_mean=x_input_1, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
                 L1_loss_2 = self.regression_loss_func_pos(y_pred_mean=x_input_2, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
                 L1_loss_3 = self.regression_loss_func_pos(y_pred_mean=x_input_3, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+
+                # add NLL Loss for every branch
+                
 
                 L1_loss_all = torch.stack([L1_loss_1, L1_loss_2, L1_loss_3])
                 L1_loss_min, idx = L1_loss_all.min(dim=0)
@@ -609,6 +640,8 @@ class Trainer_gmn(object):
                 self.G_pred_pi.append(pi_all)
 
             else:
+                mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input, if_mean_grad=False, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
+
                 dis_mu_L = distributions.MultivariateNormal(loc=mu, scale_tril=L)
                 dis_mix = distributions.Categorical(probs=pi_all)
                 gaussian_mixture = distributions.MixtureSameFamily(dis_mix, dis_mu_L)
@@ -772,55 +805,58 @@ class Trainer_gmn(object):
                 self._compute_loss_G(epoch_threshold=self.epoch_thres)
                 self._backward_G()
                 self.optimizer_G.step()
+                break
+            
+            break
                 # evaluate acc
-                self._compute_acc()
+            #     self._compute_acc()
 
-                self._collect_running_batch_states()
-                self._update_logfile_batch_train()
-                # if self.batch_id == 6:
-                #     break
-            self._collect_epoch_states()
+            #     self._collect_running_batch_states()
+            #     self._update_logfile_batch_train()
+            #     # if self.batch_id == 6:
+            #     #     break
+            # self._collect_epoch_states()
 
-            # ################## Eval ##################
-            ##########################################
-            print('Begin evaluation...')
-            self._clear_cache()
-            self.is_training = False
-            self.net_G.eval()  # Set model to eval mode
+            # # ################## Eval ##################
+            # ##########################################
+            # print('Begin evaluation...')
+            # self._clear_cache()
+            # self.is_training = False
+            # self.net_G.eval()  # Set model to eval mode
 
-            # Iterate over data.
-            for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
-                with torch.no_grad():
-                    self._forward_pass(batch, rollout=1)
-                    self._compute_loss_G()
-                    #self._compute_loss_D()
-                    self._compute_acc()
-                self._collect_running_batch_states()
-            self._collect_epoch_states()
+            # # Iterate over data.
+            # for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
+            #     with torch.no_grad():
+            #         self._forward_pass(batch, rollout=1)
+            #         self._compute_loss_G()
+            #         #self._compute_loss_D()
+            #         self._compute_acc()
+            #     self._collect_running_batch_states()
+            # self._collect_epoch_states()
 
-            ########### Update_Checkpoints ###########
-            ##########################################
-            if (self.epoch_id + 1) <= 200:
-                if (self.epoch_id + 1) % 5 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 500:
-                if (self.epoch_id + 1) % 10 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
-            else:
-                if (self.epoch_id + 1) % 50 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
+            # ########### Update_Checkpoints ###########
+            # ##########################################
+            # if (self.epoch_id + 1) <= 200:
+            #     if (self.epoch_id + 1) % 5 == 0:
+            #         self._update_checkpoints(epoch_id=self.epoch_id)
+            # elif (self.epoch_id + 1) <= 500:
+            #     if (self.epoch_id + 1) % 10 == 0:
+            #         self._update_checkpoints(epoch_id=self.epoch_id)
+            # else:
+            #     if (self.epoch_id + 1) % 50 == 0:
+            #         self._update_checkpoints(epoch_id=self.epoch_id)
 
-            ########### Update_LR Scheduler ##########
-            ##########################################
-            self._update_lr_schedulers() #注意加上D之后这里要改！！！
+            # ########### Update_LR Scheduler ##########
+            # ##########################################
+            # self._update_lr_schedulers() #注意加上D之后这里要改！！！
 
-            ############## Update logfile ############
-            ##########################################
-            self._update_logfile()
-            self._visualize_logfile()
+            # ############## Update logfile ############
+            # ##########################################
+            # self._update_logfile()
+            # self._visualize_logfile()
 
-            ########### Visualize Prediction #########
-            ##########################################
-            # self._visualize_prediction()
+            # ########### Visualize Prediction #########
+            # ##########################################
+            # # self._visualize_prediction()
 
         self.writer.close()
