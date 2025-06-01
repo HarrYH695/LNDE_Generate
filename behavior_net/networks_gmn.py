@@ -212,7 +212,7 @@ class Network_G(nn.Module):
             bert_cfg.n_layers = 4
             bert_cfg.n_heads = 4
             bert_cfg.max_len = m_tokens
-            self.Backbone = Transformer(input_dim=M.output_dim, m_tokens=m_tokens, cfg=bert_cfg)
+            self.Backbone = Transformer(input_dim=self.M.output_dim, m_tokens=m_tokens, cfg=bert_cfg)
         else:
             raise NotImplementedError(
                 'Wrong backbone model name %s (choose one from [simple_mlp, bn_mlp, transformer])' % model)
@@ -229,7 +229,7 @@ class Network_G(nn.Module):
         x = self.M(x)
         x = self.Backbone(x)
 
-        out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L = self.P(x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True, if_pi_grad=True)
+        out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L = self.P(x, if_mean_grad=if_mean_grad, if_std_grad=if_std_grad, if_corr_grad=if_corr_grad, if_pi_grad=if_pi_grad)
 
         return out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L
 

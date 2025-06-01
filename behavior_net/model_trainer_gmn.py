@@ -529,7 +529,7 @@ class Trainer_gmn(object):
 
 
             # ----------------method 3: L1_Loss----------------
-            if self.epoch_id <= 20:
+            if self.epoch_id <= 25:
                 mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=True, if_std_grad=False, if_corr_grad=False, if_pi_grad=False)
 
                 # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
@@ -546,7 +546,7 @@ class Trainer_gmn(object):
                 corr_3 = corr[:,:,2].unsqueeze(-1)
 
                 gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-                gt_cos_sin_heading, mask_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+                gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
                 self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
@@ -562,10 +562,10 @@ class Trainer_gmn(object):
                 L1_mu_min, idx_mu = L1_mu_all.min(0)
 
                 self.loss_nll = L1_mu_min + self.reg_loss_heading
-
+                print(self.loss_nll.item())
                 if idx_mu == 0:
                     posi = posi_1
-                elif idx == 1:
+                elif idx_mu == 1:
                     posi = posi_2
                 else:
                     posi = posi_3
@@ -598,9 +598,9 @@ class Trainer_gmn(object):
                 L_3 = L[:,:,2,:,:]
     
                 gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-                gt_cos_sin_heading, mask_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
-    
-                self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+                
+                #gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+                #self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
                 
                 eps1, eps2 = self._sampling_from_standard_gaussian(mu_1)
 
@@ -617,12 +617,22 @@ class Trainer_gmn(object):
                 L1_loss_3 = self.regression_loss_func_pos(y_pred_mean=x_input_3, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
 
                 # add NLL Loss for every branch
-                
+                mvn_1 = distributions.MultivariateNormal(loc=mu_1, scale_tril=L_1)
+                mvn_2 = distributions.MultivariateNormal(loc=mu_2, scale_tril=L_2)
+                mvn_3 = distributions.MultivariateNormal(loc=mu_3, scale_tril=L_3)
+
+                nll_loss_1 = -mvn_1.log_prob(self.gt[:,:,:2])
+                nll_loss_2 = -mvn_2.log_prob(self.gt[:,:,:2])
+                nll_loss_3 = -mvn_3.log_prob(self.gt[:,:,:2])
+
+                print(f"dis1:{L1_loss_1}, {nll_loss_1}")
+                print(f"dis1:{L1_loss_2}, {nll_loss_2}")
+                print(f"dis1:{L1_loss_3}, {nll_loss_3}")
 
                 L1_loss_all = torch.stack([L1_loss_1, L1_loss_2, L1_loss_3])
                 L1_loss_min, idx = L1_loss_all.min(dim=0)
 
-                self.loss_nll = L1_loss_min + self.reg_loss_heading
+                self.loss_nll = L1_loss_min # + self.reg_loss_heading
             
                 if idx == 0:
                     posi = x_input_1
@@ -758,12 +768,12 @@ class Trainer_gmn(object):
 
     def _backward_G(self):
         self.batch_loss_G.backward()
-        # print(f'------------{self.epoch_id, self.batch_id}------------')
-        # for n, p in self.net_G.named_parameters():
-        #     if p.grad is None:
-        #         print(f"{n}:grad None")
-        #     else:
-        #         print(f"{n}:{p.grad.norm():.4f}")
+        print(f'------------{self.epoch_id, self.batch_id}------------')
+        for n, p in self.net_G.named_parameters():
+            if p.grad is None:
+                print(f"{n}:grad None")
+            else:
+                print(f"{n}:{p.grad.norm():.4f}")
 
     def _backward_D(self):
         self.batch_loss_D.backward()
@@ -790,6 +800,7 @@ class Trainer_gmn(object):
             self.net_G.train()  # Set model to training mode
             # Iterate over data.
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
+                self.epoch_id = 30
                 self._forward_pass(batch, rollout=1)
 
                 # # update D
