@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 
-from .networks import define_G, define_D, set_requires_grad, define_safety_mapper
+from .networks import define_G, define_D, set_requires_grad, define_safety_mapper, Network_G
 from .loss import UncertaintyRegressionLoss, GANLoss
 from .metric import RegressionAccuracy
 from . import utils
@@ -36,8 +36,10 @@ class Trainer(object):
         self.rollout_num = configs["rollout_num"]
 
         # initialize networks
-        self.net_G = define_G(
-            configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
+        # self.net_G = define_G(
+        #     configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
+        #     m_tokens=self.m_tokens).to(device)
+        self.net_G = Network_G(configs["model"], input_dim=self.input_dim, output_dim=self.output_dim,
             m_tokens=self.m_tokens).to(device)
         self.net_D = define_D(input_dim=self.rollout_num).to(device)
 
@@ -524,7 +526,7 @@ class Trainer(object):
 
         # new forward, with joint gaussian, multi-rollout
         for roll_i in range(rollout):
-            mu, std, corr, cos_sin_heading = self.net_G(x_input)
+            mu, std, corr, cos_sin_heading = self.net_G(x_input, if_mean_grad=True, if_std_grad=False, if_corr_grad=False)
             # print(f"mu:{mu.shape}")
             # print(f"std:{std.shape}")
             # print(f"corr:{corr.shape}")

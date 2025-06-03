@@ -8,6 +8,7 @@ from tqdm import tqdm
 from simulation_modeling.simulation_inference import SimulationInference
 import pickle
 import numpy as np
+from geo_engine import GeoEngine
 
 # settings
 parser = argparse.ArgumentParser()
@@ -22,6 +23,37 @@ parser.add_argument('--config', type=str, required=True,
 parser.add_argument('--viz-flag', action='store_true', help='Default is False, adding this argument will overwrite the same flag in config file')
 
 args = parser.parse_args()
+
+class GeoMapping(GeoEngine):
+    def __init__(self, map_file_dir, map_height=1024, map_width=1024):
+        super(Mapping, self).__init__(map_file_dir, map_height=map_height, map_width=map_width)
+
+        basemap = cv2.imread(map_file_dir, cv2.IMREAD_COLOR)
+        self.basemap = cv2.cvtColor(basemap, cv2.COLOR_BGR2RGB)
+        self.basemap = cv2.resize(self.basemap, (map_width, map_height))
+        self.basemap = (self.basemap.astype(np.float64) * 0.6).astype(np.uint8)
+
+        self.traj_alpha = np.zeros([self.h, self.w, 3], dtype=np.float32)
+
+        self.get_pixel_resolution()
+
+
+    def posi_to_pixel(self, posi, output_int=True):
+        pixel = self._world2pxl(posi, output_int=output_int)
+
+        return pixel
+
+    def get_pixel_resolution(self):
+        dx_meter, dy_meter = self.f.tl[0] - self.f.tr[0], self.f.tl[1] - self.f.tr[1]
+        d = np.linalg.norm([dx_meter, dy_meter])
+
+        self.x_pixel_per_meter = self.w / d
+
+        dx_meter, dy_meter = self.f.tl[0] - self.f.bl[0], self.f.tl[1] - self.f.bl[1]
+        d = np.linalg.norm([dx_meter, dy_meter])
+
+        self.y_pixel_per_meter = self.h / d
+
 
 if __name__ == '__main__':
     # Load config file

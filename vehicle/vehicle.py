@@ -65,6 +65,11 @@ class Rotation(object):
         self.pitch = pitch
         self.roll = roll
 
+class Std_all(object):
+    def __init__(self, std_x, std_y):
+        self.std_x = std_x
+        self.std_y = std_y
+
 
 class Vehicle(object):
     def __init__(self):
@@ -91,6 +96,11 @@ class Vehicle(object):
         self.gt_size = Size3d()  # Vehicle real-world gt size (e.g., a truck from rounD). During modeling, we might consider them as another (e.g., identical) size using self.size.
         self.gt_realworld_4_vertices = None  # using gt_size
         self.gt_poly_box = None  # using gt_size
+
+        self.std_all = Std_all()
+        self.corr = None
+        self.std = None
+        self.pi = None
 
     def update_poly_box_and_realworld_4_vertices(self):
         """

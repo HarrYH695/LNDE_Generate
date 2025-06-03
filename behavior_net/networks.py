@@ -147,19 +147,34 @@ class PredictionsHeads(nn.Module):
         # cos and sin heading
         self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
 
-    def forward(self, x):
+    def forward(self, x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True):
 
         # shape x: batch_size x m_token x m_state
-        out_mean = self.out_net_mean(x)
-        out_std_raw = self.out_net_std(x)
-        corr = self.out_net_corr(x)
+        if not if_mean_grad:
+            with torch.no_grad():
+                out_mean = self.out_net_mean(x)
+        else:
+            out_mean = self.out_net_mean(x)
+
+        if not if_std_grad:
+            with torch.no_grad():
+                out_std_raw = self.out_net_std(x)
+        else:
+            out_std_raw = self.out_net_std(x)
+
+        if not if_corr_grad:
+            with torch.no_grad():
+                out_corr_raw = self.out_net_corr(x)
+        else:
+            out_corr_raw = self.out_net_corr(x)
+
 
         out_std = self.softplus(out_std_raw) + 1e-3
         # out_std = self.elu(out_std_raw) + 1
         # out_std = out_std_raw ** 2
         # out_std = self.softplus(out_std_raw)
         
-        out_corr = self.tanh(corr) * self.corr_limit
+        out_corr = self.tanh(out_corr_raw) * self.corr_limit
         out_cos_sin_heading = self.out_net_cos_sin_heading(x)
 
         return out_mean, out_std, out_corr, out_cos_sin_heading
@@ -303,3 +318,44 @@ class Transformer(nn.Module):
         for block in self.blocks:
             h = block(h, None)
         return h
+
+class Network_G(nn.Module):
+    def __init__(self, model, input_dim, output_dim, m_tokens):
+        super().__init__()
+
+        h_dim = 256
+
+        # define input positional mapping
+        self.M = PositionalMapping(input_dim=input_dim, L=4, pos_scale=0.01, heading_scale=1.0)
+
+        # define backbone networks
+        if model == 'simple_mlp':
+            self.Backbone = SimpleMLP(input_dim=M.output_dim, h_dim=h_dim, m_tokens=m_tokens)
+        elif model == 'bn_mlp':
+            self.Backbone = BnMLP(input_dim=M.output_dim, h_dim=h_dim, m_tokens=m_tokens)
+        elif model == 'transformer':
+            bert_cfg = Config()
+            bert_cfg.dim = h_dim
+            bert_cfg.n_layers = 4
+            bert_cfg.n_heads = 4
+            bert_cfg.max_len = m_tokens
+            self.Backbone = Transformer(input_dim=self.M.output_dim, m_tokens=m_tokens, cfg=bert_cfg)
+        else:
+            raise NotImplementedError(
+                'Wrong backbone model name %s (choose one from [simple_mlp, bn_mlp, transformer])' % model)
+
+        # define prediction heads
+        self.P = PredictionsHeads(h_dim=h_dim, output_dim=output_dim)
+
+        # self.if_mean_grad = True
+        # self.if_std_grad=True
+        # self.if_corr_grad=True 
+        # self.if_pi_grad=True
+
+    def forward(self, x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True):
+        x = self.M(x)
+        x = self.Backbone(x)
+
+        out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L = self.P(x, if_mean_grad=if_mean_grad, if_std_grad=if_std_grad, if_corr_grad=if_corr_grad)
+
+        return out_mean, out_std, out_corr, out_cos_sin_heading
