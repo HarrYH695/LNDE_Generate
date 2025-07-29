@@ -4,12 +4,12 @@ import pickle
 import numpy as np
 
 dir_name = "rD_baseline"
-dir_name = "rD_b_seed_r4_2"
+dir_name = "rD_trial_2"
 
-file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/check/"
+file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_gmm_0714/" + dir_name + "/check/"
 processed_files = os.listdir(file_save)
 
-file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/2/"
+file_case = "/nfs/turbo/coe-mcity/hanhy/LNDE_gmm_0714/" + dir_name + "/2/"
 # case_files = os.listdir(file_case)
 # print(len(case_files)) 
 

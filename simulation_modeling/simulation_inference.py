@@ -346,7 +346,7 @@ class SimulationInference(object):
         """
 
         # run self-simulation
-        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_std_x, pred_std_y = self.sim.run_forwardpass(traj_pool)
+        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_std_x, pred_std_y, pred_corr = self.sim.run_forwardpass(traj_pool)
         output_delta_position_mask = np.zeros(buff_vid.shape, dtype=bool)
 
         # determine whether to do safety mapping
@@ -366,7 +366,7 @@ class SimulationInference(object):
 
         TIME_BUFF_new = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
 
-        return TIME_BUFF_new, pred_vid, output_delta_position_mask, pred_std_x, pred_std_y
+        return TIME_BUFF_new, pred_vid, output_delta_position_mask #, pred_std_x, pred_std_y
 
     def update_basic_stats_of_the_current_sim_episode(self, tt, TIME_BUFF, pred_vid):
         if tt == 0:
@@ -703,10 +703,191 @@ class SimulationInference(object):
                     return 0        
 
         return 0
+
+    def check_if_wrong_traj(self, scene_data):
+        scene_tb_length = len(scene_data)
+
+        vid_all = []
+        for i in range(scene_tb_length):
+            for j in range(len(scene_data[i])):
+                car_id = int(scene_data[i][j].id)
+                if car_id not in vid_all:
+                    vid_all.append(car_id)
+        vid_all = sorted(vid_all)
+
+        all_cars_posi = -np.ones((len(vid_all), scene_tb_length, 2))
+        for i in range(scene_tb_length):
+            for car in scene_data[i]:
+                car_id = int(car.id)
+                j = vid_all.index(car_id)
+                all_cars_posi[j, i, :] = np.array([car.location.x, car.location.y])
+
+        for i in range(len(vid_all)):
+            position = all_cars_posi[i]
+            heading = []
+            for j in range(1, len(position)):
+                if position[j][0] == -1 or position[j-1][0] == -1:
+                    continue
+                #heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
+                dis_car = np.sqrt((position[j][1] - position[j - 1][1])**2 + (position[j][0] - position[j - 1][0])**2)
+                heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j, dis_car])
+                if dis_car >= 10:
+                    return True
+            
+            if len(heading) < 2:
+                continue
+            for j in range(len(heading) - 1):
+                if abs(heading[j][0] - heading[j + 1][0]) < np.pi / 4 or abs(2 * np.pi - abs(heading[j][0] - heading[j + 1][0])) < np.pi / 4:
+                    continue
+                if heading[j][2] < 0.4 or heading[j+1][2] < 0.4:
+                    continue
+                
+                return True
+
+        return False
+
     
-    # def vis_TimeBuff_PoC(self, file_path, original_tb_dir, poc_dir, save_path):
+    def truncated_exp_sample(self, lam=2, low=0.5, high=5.5):
+        while True:
+            x = np.random.exponential(scale=1/lam)
+            if x > low and x < high:
+                return round(x)
+
+    def generate_prob_ignore_results(self, save_path_all, save_path_single, save_idx, max_time=500, ignore_rate=0.4, lambda_exp = 1.5, initial_TIME_BUFF=None):
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
         
-    #     return
+        car_id_by_time = []
+        for cars in TIME_BUFF:
+            car_id_t = []
+            for car in cars:
+                car_id_t.append(car.id)
+            car_id_by_time.append(car_id_t)
+
+        while True:
+            cars_to_ignore = []
+            for car_id in car_id_by_time[-1]:
+                p_ignore = np.random.binomial(n=1, p=ignore_rate)
+                if p_ignore:
+                    cars_to_ignore.append(car_id)
+
+            if len(cars_to_ignore) >= 0.3 * len(car_id_by_time[-1]):
+                break
+
+        # 对于每一个被选中的车，它们都看不见任何其他车
+        # 没有被选中的车，可以看到其他所有车
+
+        # 对每辆选中的车生成盲区时间，范围是[1,5]
+
+        cars_ignore_dict = {}
+
+        for car_id in cars_to_ignore:
+            cars_ignore_dict[car_id] = self.truncated_exp_sample(lam=lambda_exp)
+
+        # time_to_ignore = []
+        # for i in range(len(cars_to_ignore)):
+        #     car_id = cars_to_ignore[i]
+        #     t_ignore = self.truncated_exp_sample(lam=lambda_exp)
+        #     time_to_ignore.append(t_ignore)
+
+
+        TIME_BUFF_all = copy.deepcopy(TIME_BUFF)
+
+        for t in range(max_time):
+            # 生成正常的下一步
+            TIME_BUFF_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
+
+            # 为每辆被选中的车生成下一步，并替换正常下一步中对应车的位置
+            # for car in TIME_BUFF_new[-1]:
+            #     print(car.id, car.location.x, car.location.y)
+            # print('--------')
+            # print(cars_to_ignore)
+            # print('--------')
+
+            ignored_next_step = []
+
+            for car_id in cars_ignore_dict:
+                if car_id not in car_id_by_time[-1]:
+                    continue
+
+                t_ignore = cars_ignore_dict[car_id]
+
+                TIME_BUFF_changed = []
+                for i in range(len(TIME_BUFF)):
+                    if (i + t) < t_ignore:
+                        TIME_BUFF_changed.append(TIME_BUFF[i])
+                    else:
+                        for car in TIME_BUFF[i]:
+                            if car.id == car_id:
+                                TIME_BUFF_changed.append([car])
+                                break
+
+                traj_pool_changed = self.sim.time_buff_to_traj_pool(TIME_BUFF_changed)
+                TIME_BUFF_changed_new, _, _, = self.run_one_sim_step(traj_pool=traj_pool_changed, TIME_BUFF=TIME_BUFF_changed)
+
+                for car in TIME_BUFF_changed_new[-1]:
+                    if car.id == car_id:
+                        ignored_next_step.append(car)
+                        break
+
+            TIME_BUFF_last = []
+
+            ignore_id_list = [key for key in cars_ignore_dict]
+            for car in TIME_BUFF_new[-1]:
+                if car.id not in ignore_id_list:
+                    TIME_BUFF_last.append(car)
+
+            TIME_BUFF_last += ignored_next_step
+            
+            TIME_BUFF = TIME_BUFF[1:]
+            TIME_BUFF.append(TIME_BUFF_last)
+
+            # for car in TIME_BUFF[-1]:
+            #     print(car.id, car.location.x, car.location.y)
+            # print('-----------')
+            TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)
+            TIME_BUFF = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF)
+            traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF)
+
+
+            TIME_BUFF_all.append(TIME_BUFF[-1])
+
+            car_id_last = [car.id for car in TIME_BUFF_all[-1]]
+            car_id_by_time.append(car_id_last)
+
+            for car_id in car_id_by_time[-1]:
+                if car_id not in car_id_by_time[-2]:
+                    p_ignore = np.random.binomial(n=1, p=ignore_rate - 0.2)
+                    if p_ignore:
+                        cars_ignore_dict[car_id] = self.truncated_exp_sample(lam=lambda_exp) + (t + 5)
+            
+
+            coll_flag, _ = self.sim.collision_check(TIME_BUFF_all[-1:])
+
+            if coll_flag:
+                break
+            # for car in TIME_BUFF[-1]:
+            #     print(car.id, car.location.x, car.location.y)
+
+        if_wrong_traj = self.check_if_wrong_traj(TIME_BUFF_all)
+
+        if not if_wrong_traj:
+            with open(os.path.join(save_path_all, f'{save_idx}.pkl'), 'wb') as fb:
+                pickle.dump(TIME_BUFF_all, fb)
+
+            for i in range(len(TIME_BUFF_all) - 6):
+                with open(os.path.join(save_path_single, f'{save_idx}_{i}.pkl'), 'wb') as fb2:
+                    pickle.dump(TIME_BUFF_all[i:i+6], fb2)
+
+            return 1
+
+        else:
+            return 0
+
+
+
+
+
+
     def check_one_sample(self, TIME_BUFF):
         TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)   
         #Attention!!! Delete the cars that did not show up in the last time step!!!

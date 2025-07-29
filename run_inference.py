@@ -73,6 +73,22 @@ if __name__ == '__main__':
 
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
+
+    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all/val/'
+    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single/val/'
+    
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    if not os.path.exists(save_dir_single):
+        os.makedirs(save_dir_single)
+
+    gen_num = 0
+    for i in tqdm(range(500)):
+        if_gen = simulation_inference_model.generate_prob_ignore_results(save_path_all=save_dir, save_path_single=save_dir_single, save_idx=i)
+        gen_num += if_gen
+
+    print(gen_num)
     
     #test!
     #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
@@ -106,16 +122,16 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    dir_name = "rD_b_seed_r4_2"
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/"
-    if not os.path.exists(save_sim_path):
-        os.makedirs(save_sim_path)
-    coll_num = 0
-    for idx in tqdm(range(10000)):
-        #print(f"----------------{idx}----------------")
-        coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
-        coll_num += coll
-    print(f"Find collision num: {coll_num}")
+    # dir_name = "rD_b_seed_r4_2"
+    # save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/"
+    # if not os.path.exists(save_sim_path):
+    #     os.makedirs(save_sim_path)
+    # coll_num = 0
+    # for idx in tqdm(range(10000)):
+    #     #print(f"----------------{idx}----------------")
+    #     coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
+    #     coll_num += coll
+    # print(f"Find collision num: {coll_num}")
 
     #Get the visual of 1000 results
     # save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"

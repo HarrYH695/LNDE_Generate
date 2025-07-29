@@ -2,6 +2,7 @@ import numpy as np
 import os
 import random
 import torch
+import torch.nn.functional as F
 import torch.distributions as distributions
 import copy
 from itertools import combinations
@@ -11,7 +12,7 @@ from vehicle import Vehicle, Location, Size3d
 from trajectory_pool import TrajectoryPool
 from road_matching import RoadMatcher, ROIMatcher
 
-from behavior_net.networks_gmn import define_G
+from behavior_net.networks_gmn import define_G, Network_G
 from . import utils
 
 # Decide which device we want to run on
@@ -56,7 +57,7 @@ class TrafficSimulator_gmm(object):
 
     def initialize_net_G(self):
 
-        net_G = define_G(
+        net_G = Network_G(
             model=self.model, input_dim=4*self.history_length,
             output_dim=4*self.pred_length, m_tokens=self.m_tokens, n_gaussian=self.n_gaussian).to(self.device)
 
@@ -88,9 +89,9 @@ class TrafficSimulator_gmm(object):
 
     def sampling(self, pred_mean, pred_pi, pred_L):
         eps_sample = np.zeros_like(pred_mean)
-        for s_t in range(self.sample_times):
-            eps_sample += np.random.randn(*pred_mean.shape)
-        eps_sample /= self.sample_times
+        # for s_t in range(self.sample_times):
+        #     eps_sample += np.random.randn(*pred_mean.shape)
+        # eps_sample /= self.sample_times
         
         # print("-------in sampling:-------")
         # print(f"pred_mean:{pred_mean.shape}")
@@ -98,6 +99,9 @@ class TrafficSimulator_gmm(object):
         # print(f"pred_pi:{pred_pi.shape}")
         # print(f"pred_L:{pred_L.shape}")
         
+        # posi = pred_mean + np.squeeze(pred_L @ np.expand_dims(eps_sample, -1), -1) 
+        # posi = np.sum(np.expand_dims(pred_pi, -1) * posi, axis=2)
+
         posi = pred_mean + np.squeeze(pred_L @ np.expand_dims(eps_sample, -1), -1) 
         posi = np.sum(np.expand_dims(pred_pi, -1) * posi, axis=2)
 
@@ -128,7 +132,7 @@ class TrafficSimulator_gmm(object):
 
         # run prediction
         # print(f"input_matrix:{input_matrix.shape}")
-        mean_pos, std_pos, corr, cos_sin_heading, pi_all, out_L = self.net_G(input_matrix)
+        mean_pos, std_pos, corr, cos_sin_heading, pi_all = self.net_G(input_matrix, if_transformer=False, if_mean_grad=False, if_std_grad=False, if_corr_grad=False, if_pi_grad=False)
 
 
         # print(f"mean_pos:{mean_pos.shape}")
@@ -139,10 +143,31 @@ class TrafficSimulator_gmm(object):
         # print(f"out_L:{out_L.shape}")
 
         pred_mean_pos = mean_pos.detach().cpu().numpy()
+        pred_std = std_pos.detach().cpu().numpy()
+        pred_corr = corr.detach().cpu().numpy()
         pred_cos_sin_heading = cos_sin_heading.detach().cpu().numpy()[0, :, :]
-        pred_pi = pi_all.detach().cpu().numpy()
-        pred_L = out_L.detach().cpu().numpy()
-        pred_posi = self.sampling(pred_mean_pos, pred_pi, pred_L)
+
+        std_x = pred_std[..., 0] 
+        std_y = pred_std[..., 1] 
+
+        row1 = np.stack([
+            std_x,
+            np.zeros_like(std_x)
+        ], axis=-1)
+
+        row2 = np.stack([
+            pred_corr * std_y,
+            np.sqrt(1.0 - pred_corr**2) * std_y
+        ], axis=-1)
+
+        pred_L = np.stack([row1, row2], axis=-2)  
+
+        pred_pi = pi_all.argmax(-1)
+        pred_pi_one_hot = F.one_hot(pred_pi, num_classes=3).float()
+        pred_pi_final = pred_pi_one_hot.detach().cpu().numpy()
+
+        pred_posi = self.sampling(pred_mean_pos, pred_pi_final, pred_L)
+        # print(f"pred_posi:{pred_posi.shape}")
         pred_posi = np.squeeze(pred_posi, axis=0)
         # print(f"pred_posi:{pred_posi.shape}")
 
@@ -155,7 +180,11 @@ class TrafficSimulator_gmm(object):
 
         # print(f"pred_lat:{pred_lat.shape}")
         # print(f"pred_lon:{pred_lon.shape}")
-        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, 0, 0, 0
+        # print(f"pred_std:{pred_std.shape}")
+        # print(f"pred_corr:{pred_corr.shape}")
+        # print(f"pred_pi:{pred_pi.shape}")
+
+        return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, pred_std, pred_corr, pi_all, pred_mean_pos
 
 
     def do_safety_mapping(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, output_delta_position_mask=False):
@@ -176,7 +205,7 @@ class TrafficSimulator_gmm(object):
         return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid
 
 
-    def prediction_to_trajectory_rolling_horizon(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step):
+    def prediction_to_trajectory_rolling_horizon(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_std, pred_corr, pred_pi, pred_mean, pred_vid, TIME_BUFF, rolling_step):
         """
         convert predicted tensor to trajectory pool.
         TIME_BUFF can be updated in a rolling horizon fashion (not all pred steps are used).
@@ -204,6 +233,10 @@ class TrafficSimulator_gmm(object):
 
                 v = Vehicle()
                 v.location = Location(x=lat, y=lon)
+                v.mean_posi = pred_mean[0, vj, :, :]
+                v.std = pred_std[0, vj, :, :]
+                v.corr = pred_corr[0, vj, :]
+                v.pi = pred_pi[0, vj, :]
                 v.id = str(int(id))
                 v.category = 0
                 v.speed_heading = heading

@@ -97,10 +97,11 @@ class Vehicle(object):
         self.gt_realworld_4_vertices = None  # using gt_size
         self.gt_poly_box = None  # using gt_size
 
-        self.std_all = Std_all()
-        self.corr = None
+        #self.std_all = Std_all()
         self.std = None
+        self.corr = None
         self.pi = None
+        self.mean_posi = None
 
     def update_poly_box_and_realworld_4_vertices(self):
         """

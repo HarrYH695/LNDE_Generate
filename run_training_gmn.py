@@ -15,7 +15,7 @@ from behavior_net import Trainer_gmn
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
-parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_3steps_1/training/behavior_net',
+parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs/AA_rdbt_behavior_net_training.yml')
@@ -99,10 +99,10 @@ if __name__ == '__main__':
     # seed = 2025
     # set_seed(seed)
 
-    dump_rng_states(os.path.join(save_result_path, experiment_name))
+    #dump_rng_states(os.path.join(save_result_path, experiment_name))
 
-    # seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/results_gmn_new3/training/behavior_net/rounD_nG3_NllAndL1_try2/seeds.pkl"
-    # load_rng_states(seed_file)
+    seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net/rounD_nG3_trial_3/seeds.pkl"
+    load_rng_states(seed_file)
 
 
     # Initialize the DataLoader
@@ -115,4 +115,5 @@ if __name__ == '__main__':
     m = Trainer_gmn(configs=configs, dataloaders=dataloaders)
     m.train_models()
 
-# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_try10_not_win_all
+# 别忘了改seed！！！！！
+# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_trial_3_4

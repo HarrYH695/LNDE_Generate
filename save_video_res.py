@@ -23,7 +23,51 @@ parser.add_argument('--viz-flag', action='store_true', help='Default is False, a
 
 args = parser.parse_args()
 
+
 if __name__ == '__main__':
+    def check_if_wrong_traj(scene_data):
+        scene_tb_length = len(scene_data)
+
+        vid_all = []
+        for i in range(scene_tb_length):
+            for j in range(len(scene_data[i])):
+                car_id = int(scene_data[i][j].id)
+                if car_id not in vid_all:
+                    vid_all.append(car_id)
+        vid_all = sorted(vid_all)
+
+        all_cars_posi = -np.ones((len(vid_all), scene_tb_length, 2))
+        for i in range(scene_tb_length):
+            for car in scene_data[i]:
+                car_id = int(car.id)
+                j = vid_all.index(car_id)
+                all_cars_posi[j, i, :] = np.array([car.location.x, car.location.y])
+
+        for i in range(len(vid_all)):
+            position = all_cars_posi[i]
+            heading = []
+            for j in range(1, len(position)):
+                if position[j][0] == -1 or position[j-1][0] == -1:
+                    continue
+                #heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
+                dis_car = np.sqrt((position[j][1] - position[j - 1][1])**2 + (position[j][0] - position[j - 1][0])**2)
+                heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j, dis_car])
+                if dis_car >= 10:
+                    return True
+            
+            if len(heading) < 2:
+                continue
+            for j in range(len(heading) - 1):
+                if abs(heading[j][0] - heading[j + 1][0]) < np.pi / 4 or abs(2 * np.pi - abs(heading[j][0] - heading[j + 1][0])) < np.pi / 4:
+                    continue
+                if heading[j][2] < 0.4 or heading[j+1][2] < 0.4:
+                    continue
+                
+                return True
+
+        return False
+
+    
     # Load config file
     with open(args.config) as file:
         try:
@@ -57,10 +101,11 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference_gmm(configs=configs)
 
-    dir_name = "rD_gmm_6"
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/1/" 
-    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/scene_videos/"
+    dir_name = "rD_trial_2_4"
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/1_1/"
+    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/scene_videos_1_1/"
 
+    # file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data_ignore_new_all/train/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -68,17 +113,28 @@ if __name__ == '__main__':
     print(len(scenes_all)) 
 
     num = 0
-    for scene in scenes_all:
+    coll_all = []
+    for scene_i in tqdm(range(50)):
         #scene = "7279.pkl"
+        scene = f'{scene_i}.pkl'
+        # if (scene_i + 1) % 10 != 0:
+        #     continue
+        if not os.path.exists(file_ori+scene):
+            continue
+
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
         scene_data = scene_data_file["states_considered"]
-        collision_time = scene_data_file["crash_step"]
+        # collision_time = scene_data_file["crash_step"]
         # scene_before = scene_data_file["states_before"]
         # print(len(scene_before))
-        if len(scene_data) >= 7:
+
+        # if_wrong_traj = check_if_wrong_traj(scene_data_file)
+
+        if len(scene_data) > 6: #not if_wrong_traj:
             num += 1
             simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
-            print(collision_time)
+            #coll_all.append(collision_time)
         #break
     print(f"video_num:{num}")
+    #print(coll_all)
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

@@ -16,7 +16,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
     Pytorch Dataset Loader...
     """
 
-    def __init__(self, path_to_traj_data, history_length, pred_length, max_num_vehicles, is_train, dataset='AA_rdbt'):
+    def __init__(self, path_to_traj_data, path_to_traj_data_new_train, path_to_traj_data_new_val, history_length, pred_length, max_num_vehicles, is_train, dataset='AA_rdbt'):
         self.history_length = history_length
         self.pred_length = pred_length
         self.max_num_vehicles = max_num_vehicles
@@ -46,6 +46,14 @@ class MTLTrajectoryPredictionDataset(Dataset):
             self.subfolder_data_proportion = [self.each_subfolder_size[i]/sum(self.each_subfolder_size) for i in range(len(self.each_subfolder_size))]
             self.subsubfolder_data_proportion = [[self.each_subsubfolder_size[i][j]/sum(self.each_subsubfolder_size[i]) for j in range(len(self.each_subsubfolder_size[i]))] for i in range(len(self.each_subsubfolder_size))]
 
+            if is_train:
+                self.path_ignore = path_to_traj_data_new_train
+            else:
+                self.path_ignore = path_to_traj_data_new_val
+
+            self.data_files_ignore = os.listdir(self.path_ignore)
+            self.path_ignore_len = len(self.data_files_ignore)
+            self.choice = 0
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
@@ -58,13 +66,19 @@ class MTLTrajectoryPredictionDataset(Dataset):
     def __getitem__(self, idx):
 
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt':
-            subfolder_id = random.choices(range(len(self.each_subfolder_size)), weights=self.subfolder_data_proportion)[0]
-            subsubfolder_id = random.choices(range(len(self.traj_dirs[subfolder_id])), weights=self.subsubfolder_data_proportion[subfolder_id])[0]
-            datafolder_dirs = self.traj_dirs[subfolder_id][subsubfolder_id]
+            self.choice = np.random.binomial(n=1, p=0.3)
+            if self.choice:
+                subfolder_id = random.choices(range(len(self.each_subfolder_size)), weights=self.subfolder_data_proportion)[0]
+                subsubfolder_id = random.choices(range(len(self.traj_dirs[subfolder_id])), weights=self.subsubfolder_data_proportion[subfolder_id])[0]
+                datafolder_dirs = self.traj_dirs[subfolder_id][subsubfolder_id]
 
-            idx_start = self.history_length + 1
-            idx_end = len(datafolder_dirs) - self.pred_length - 1
-            idx = random.randint(idx_start, idx_end)
+                idx_start = self.history_length + 1
+                idx_end = len(datafolder_dirs) - self.pred_length - 1
+                idx = random.randint(idx_start, idx_end)
+            else:
+                datafolder_dirs = ''
+                idx = random.randint(0, self.path_ignore_len - 2)
+
         else:
             raise NotImplementedError( 'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])' % self.dataset)
 
@@ -81,12 +95,23 @@ class MTLTrajectoryPredictionDataset(Dataset):
         return data
 
     def fill_in_traj_pool(self, t0, datafolder_dirs):
-        # read frames within a time interval
-        traj_pool = TrajectoryPool()
-        for i in range(t0-self.history_length+1, t0+self.pred_length+1):
-            vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
-            traj_pool.update(vehicle_list)
-        return traj_pool
+        if self.choice:
+            # read frames within a time interval
+            traj_pool = TrajectoryPool()
+            for i in range(t0-self.history_length+1, t0+self.pred_length+1):
+                vehicle_list = pickle.load(open(datafolder_dirs[i], "rb"))
+                traj_pool.update(vehicle_list)
+            return traj_pool
+        else:
+            traj_pool = TrajectoryPool()
+            with open(os.path.join(self.path_ignore, self.data_files_ignore[t0]), 'rb') as fb:
+                vehicle_list_all = pickle.load(fb)
+
+            for i in range(len(vehicle_list_all)):
+                traj_pool.update(vehicle_list_all[i])
+            
+            return traj_pool
+
 
     def make_training_data_pair(self, buff_lat, buff_lon, buff_cos_heading, buff_sin_heading):
 
@@ -146,9 +171,9 @@ class MTLTrajectoryPredictionDataset(Dataset):
 def get_loaders(configs):
 
     if configs["dataset"] == 'AA_rdbt' or configs["dataset"] == 'rounD':
-        training_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["rollout_num"],
+        training_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], path_to_traj_data_new_train=configs['path_to_traj_data_new_train'], path_to_traj_data_new_val=configs['path_to_traj_data_new_val'], history_length=configs["history_length"], pred_length=configs["rollout_num"],
                                                       max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"])
-        val_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["rollout_num"],
+        val_set = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], path_to_traj_data_new_train=configs['path_to_traj_data_new_train'], path_to_traj_data_new_val=configs['path_to_traj_data_new_val'], history_length=configs["history_length"], pred_length=configs["rollout_num"],
                                                  max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"])
     else:
         raise NotImplementedError(

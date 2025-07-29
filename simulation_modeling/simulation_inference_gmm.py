@@ -247,6 +247,17 @@ class SimulationInference_gmm(object):
             # Update, print, and save basic simulation results
             self.update_basic_sim_metric(sim_idx)
 
+    def check_TIME_BUFF_metric(self, TIME_BUFF, sim_idx):
+        # Generate and save simulation metrics
+        if self.gen_realistic_metric_flag:
+            self.generate_simulation_metric(self.one_sim_TIME_BUFF)
+            self.save_sim_metric()
+            # print("Saving sim metrics!")
+
+        # Update, print, and save basic simulation results
+        #self.update_basic_sim_metric(sim_idx)
+
+
     def _gen_sim_metric(self, one_sim_TIME_BUFF):
         # Construct traj dataframe
         self.SimMetricsAnalyzer.construct_traj_data(one_sim_TIME_BUFF)
@@ -346,7 +357,7 @@ class SimulationInference_gmm(object):
         """
 
         # run self-simulation
-        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_std_x, pred_std_y, pred_corr = self.sim.run_forwardpass(traj_pool)
+        pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, current_lat, current_lon, pred_std, pred_corr, pred_pi, pred_mean = self.sim.run_forwardpass(traj_pool)
         output_delta_position_mask = np.zeros(buff_vid.shape, dtype=bool)
 
         # determine whether to do safety mapping
@@ -364,9 +375,9 @@ class SimulationInference_gmm(object):
             else:
                 print('Generate a collision!')
 
-        TIME_BUFF_new = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
+        TIME_BUFF_new = self.sim.prediction_to_trajectory_rolling_horizon(pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_std, pred_corr, pred_pi, pred_mean, pred_vid, TIME_BUFF, rolling_step=self.rolling_step)
 
-        return TIME_BUFF_new, pred_vid, output_delta_position_mask, pred_std_x, pred_std_y, pred_corr
+        return TIME_BUFF_new, pred_vid, output_delta_position_mask #, pred_std_x, pred_std_y, pred_corr
 
     def update_basic_stats_of_the_current_sim_episode(self, tt, TIME_BUFF, pred_vid):
         if tt == 0:
@@ -427,6 +438,101 @@ class SimulationInference_gmm(object):
 
         self.one_sim_wall_time = (tt + 1) * self.sim_resol * self.rolling_step
 
+    def truncated_exp_sample(self, lam=1.5, low=0.5, high=5.5):
+        while True:
+            x = np.random.exponential(scale=1/lam)
+            if x > low and x < high:
+                return round(x)
+
+    def generate_prob_ignore_results(self, save_path, ignore_rate=0.4, lambda_exp = 1.5, initial_TIME_BUFF=None):
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+
+        car_id_by_time = []
+        for cars in TIME_BUFF:
+            car_id_t = []
+            for car in cars:
+                car_id_t.append(car.id)
+            car_id_by_time.append(car_id_t)
+
+        while True:
+            cars_to_ignore = []
+            for car_id in car_id_by_time[-1]:
+                p_ignore = np.random.binomial(n=1, p=ignore_rate)
+                if p_ignore:
+                    cars_to_ignore.append(car_id)
+
+            if len(cars_to_ignore) >= 0.3 * len(car_id_by_time[-1]):
+                break
+
+        # 对于每一个被选中的车，它们都看不见任何其他车
+        # 没有被选中的车，可以看到其他所有车
+
+        # 对每辆选中的车生成盲区时间，范围是[1,5]
+        time_to_ignore = []
+        for i in range(len(cars_to_ignore)):
+            car_id = cars_to_ignore[i]
+            t_ignore = self.truncated_exp_sample(lam=lambda_exp)
+            time_to_ignore.append(t_ignore)
+        
+        # 生成正常的下一步
+        TIME_BUFF_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool, TIME_BUFF=TIME_BUFF)
+
+        # 为每辆被选中的车生成下一步，并替换正常下一步中对应车的位置
+        # for car in TIME_BUFF_new[-1]:
+        #     print(car.id, car.location.x, car.location.y)
+        # print('--------')
+        # print(cars_to_ignore)
+        # print('--------')
+
+        ignored_next_step = []
+        for i in range(len(cars_to_ignore)):
+            car_id = cars_to_ignore[i]
+            t_ignore = time_to_ignore[i]
+
+            TIME_BUFF_changed = []
+            for i in range(len(TIME_BUFF)):
+                if i < len(TIME_BUFF) - t_ignore:
+                    TIME_BUFF_changed.append(TIME_BUFF[i])
+                else:
+                    for car in TIME_BUFF[i]:
+                        if car.id == car_id:
+                            TIME_BUFF_changed.append([car])
+                            break
+            
+            traj_pool_changed = self.sim.time_buff_to_traj_pool(TIME_BUFF_changed)
+            TIME_BUFF_changed_new, _, _ = self.run_one_sim_step(traj_pool=traj_pool_changed, TIME_BUFF=TIME_BUFF_changed)
+            
+            for car in TIME_BUFF_changed_new[-1]:
+                if car.id == car_id:
+                    ignored_next_step.append(car)
+                    break
+        
+        TIME_BUFF_last = []
+        for car in TIME_BUFF_new[-1]:
+            if car.id not in cars_to_ignore:
+                TIME_BUFF_last.append(car)
+
+        TIME_BUFF_last += ignored_next_step
+
+        TIME_BUFF.append(TIME_BUFF_last)
+
+        # for car in TIME_BUFF[-1]:
+        #     print(car.id, car.location.x, car.location.y)
+        # print('-----------')
+        TIME_BUFF = self.sim.remove_out_of_bound_vehicles(TIME_BUFF, dataset=self.dataset)
+
+        # for car in TIME_BUFF[-1]:
+        #     print(car.id, car.location.x, car.location.y)
+        # print(len(TIME_BUFF))
+        
+        with open(save_path, 'wb') as fb:
+            pickle.dump(TIME_BUFF, fb)
+        
+
+
+
+        
+    
     def run_sim_steps_for_certain_TIME_BUFF(self, time_buff, sim_num, result_dir, num_idx, poc_dir, T=5): 
         #First record the states of TIME_BUFF, then run multiple one_step simulation to get result matrix and PoC
         # car_num_ineq = True
@@ -641,19 +747,20 @@ class SimulationInference_gmm(object):
         with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}.pkl", "wb") as f:
             pickle.dump(Trajectory_info, f)
     
-    def check_crash_samples(self, max_time, result_dir, num_idx, initial_TIME_BUFF=None):
+    def check_crash_samples(self, max_time, result_dir, num_idx, if_all, initial_TIME_BUFF=None, save_not_coll=True):
         #sample from history traj, then simulate for a long time until get a crash.
         #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
         #if find proper samples, save the whole traj.
         TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
         TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
         traj_pool_new = copy.deepcopy(traj_pool)
-        std_x_all = []
-        std_y_all = []
-        corr_all = []
+        # std_x_all = []
+        # std_y_all = []
+        # corr_all = []
         for i in range(max_time):
-            TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y, pred_corr = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
-            # break
+            #TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y, pred_corr = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+            # return 0
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
             TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
             traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
@@ -661,9 +768,9 @@ class SimulationInference_gmm(object):
             self.update_basic_stats_of_the_current_sim_episode(i, TIME_BUFF_new, pred_vid)
             self.one_sim_colli_flag, crash_pair = self.sim.collision_check(self.one_sim_TIME_BUFF_newly_generated)
 
-            std_x_all.append(std_x)
-            std_y_all.append(std_y)
-            corr_all.append(pred_corr)
+            # std_x_all.append(std_x)
+            # std_y_all.append(std_y)
+            # corr_all.append(pred_corr)
 
             if self.one_sim_colli_flag:
                 #infos["inference_step"] = i + 1
@@ -688,21 +795,36 @@ class SimulationInference_gmm(object):
                 if len(states_to_be_considered) >= 7:
                     infos = {}
                     #infos["whole_inference_states"] = self.one_sim_TIME_BUFF
-                    infos["states_considered"] = states_to_be_considered[::-1]
-                    idx_before_start = np.max(len(self.one_sim_TIME_BUFF) + final_idx - 5, 0)
-                    infos["states_before"] = self.one_sim_TIME_BUFF[idx_before_start:final_idx] # to check all the states considered for 3-sigma
-                    infos['crash_step'] = i + 1
-                    infos["std_x"] = std_x_all
-                    infos["std_y"] = std_y_all
-                    infos["corr"] = corr_all
+
+                    if if_all:
+                        infos["states_all"] = self.one_sim_TIME_BUFF
+                    else:
+                        infos["states_considered"] = states_to_be_considered[::-1]
+                        idx_before_start = np.max(len(self.one_sim_TIME_BUFF) + final_idx - 5, 0)
+                        infos["states_before"] = self.one_sim_TIME_BUFF[idx_before_start:final_idx] # to check all the states considered for 3-sigma
+                        infos['crash_step'] = i + 1
+
 
                     with open(result_dir + f"{num_idx}.pkl", "wb") as f:
                         pickle.dump(infos, f)
 
                     return 1
                 else:
-                    return 0        
+                    if save_not_coll:
+                        infos = {}
+                        infos["states_considered"] = self.one_sim_TIME_BUFF
 
+                        with open(result_dir + f"{num_idx}_short.pkl", "wb") as f:
+                            pickle.dump(infos, f)
+                    return 0 
+
+        if save_not_coll:
+            infos = {}
+            infos["states_considered"] = self.one_sim_TIME_BUFF
+
+            with open(result_dir + f"{num_idx}_no_coll.pkl", "wb") as f:
+                pickle.dump(infos, f)
+        
         return 0
     
     # def vis_TimeBuff_PoC(self, file_path, original_tb_dir, poc_dir, save_path):

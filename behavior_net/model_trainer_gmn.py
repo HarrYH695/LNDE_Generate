@@ -4,6 +4,7 @@ import os
 import json
 import random
 import math
+import pickle
 
 import torch
 import torch.optim as optim
@@ -48,6 +49,8 @@ class Trainer_gmn(object):
             m_tokens=self.m_tokens, n_gaussian=self.n_gaussian).to(device)
         self.net_D = define_D(input_dim=self.output_dim).to(device)
 
+        self.single_ckpt_path = configs['single_ckpt_path']
+
         # Learning rate
         self.lr = configs["lr"]
         self.warmup_steps = configs["warmup_steps"]
@@ -60,26 +63,31 @@ class Trainer_gmn(object):
         self.lambda_reg_posi = configs["lambda_reg_posi"]
         self.lambda_reg_angle = configs["lambda_reg_angle"]
 
+        self.branch_0 = np.zeros(2)
+        self.branch_1 = np.zeros(2)
+        self.branch_2 = np.zeros(2)
+
         # define optimizers
         self.optimizer_G = optim.AdamW(self.net_G.parameters(), lr=self.lr, betas=(0.9,0.999), weight_decay=1e-4,  eps=1e-8)
         self.optimizer_D = optim.RMSprop(self.net_D.parameters(), lr=self.lr)
 
         # define lr schedulers
-        # self.exp_lr_scheduler_G = lr_scheduler.StepLR(
-        #     self.optimizer_G, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
+        self.exp_lr_scheduler_G = lr_scheduler.StepLR(
+            self.optimizer_G, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
         self.exp_lr_scheduler_D = lr_scheduler.StepLR(
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
-        warmup_steps = self.warmup_steps
-        total_steps = self.total_steps
-        def lr_lambda(step):
-            if step < warmup_steps:
-                return step / warmup_steps
-            progress = (step - warmup_steps) / (total_steps - warmup_steps)
-            lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
-            return lr_cos  # eta_min=1e-3*lr
+
+        # warmup_steps = self.warmup_steps
+        # total_steps = self.total_steps
+        # def lr_lambda(step):
+        #     if step < warmup_steps:
+        #         return step / warmup_steps
+        #     progress = (step - warmup_steps) / (total_steps - warmup_steps)
+        #     lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
+        #     return lr_cos  # eta_min=1e-3*lr
         
-        self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
+        # self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
 
         # define loss function and error metric
         self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_c')
@@ -104,6 +112,8 @@ class Trainer_gmn(object):
         self.val_epoch_loss = 0.0
         self.epoch_to_start = 0
         self.max_num_epochs = configs["max_num_epochs"]
+        self.epoch_mu = configs['epoch_mu']
+        self.epoch_std = configs['epoch_std']
 
         self.is_training = True
         self.batch = None
@@ -147,7 +157,7 @@ class Trainer_gmn(object):
             print('loading last checkpoint...')
             # load the entire checkpoint
             checkpoint = torch.load(os.path.join(self.checkpoint_dir, f'ckpt_{start_id}.pt'))
-
+            
             # update net_G states
             self.net_G.load_state_dict(checkpoint['model_G_state_dict'])
             self.optimizer_G.load_state_dict(checkpoint['optimizer_G_state_dict'])
@@ -156,11 +166,11 @@ class Trainer_gmn(object):
             self.net_G.to(device)
 
             # update net_D states
-            self.net_D.load_state_dict(checkpoint['model_D_state_dict'])
-            self.optimizer_D.load_state_dict(checkpoint['optimizer_D_state_dict'])
-            self.exp_lr_scheduler_D.load_state_dict(
-                checkpoint['exp_lr_scheduler_D_state_dict'])
-            self.net_D.to(device)
+            # self.net_D.load_state_dict(checkpoint['model_D_state_dict'])
+            # self.optimizer_D.load_state_dict(checkpoint['optimizer_D_state_dict'])
+            # self.exp_lr_scheduler_D.load_state_dict(
+            #     checkpoint['exp_lr_scheduler_D_state_dict'])
+            # self.net_D.to(device)
 
             # update some other states
             self.epoch_to_start = checkpoint['epoch_id'] + 1
@@ -171,6 +181,69 @@ class Trainer_gmn(object):
         else:
             print('training from scratch...')
 
+    def _load_certain_ckpt(self, ckpt_path):
+        print('loading last checkpoint...')
+        # load the entire checkpoint
+        checkpoint = torch.load(ckpt_path)
+
+        # update net_G states
+        self.net_G.load_state_dict(checkpoint['model_G_state_dict'])
+        self.optimizer_G.load_state_dict(checkpoint['optimizer_G_state_dict'])
+        self.exp_lr_scheduler_G.load_state_dict(
+            checkpoint['exp_lr_scheduler_G_state_dict'])
+        self.net_G.to(device)
+        
+        self.epoch_to_start = checkpoint['epoch_id'] + 1
+
+        print('Checkpoint(certain) Loaded.')
+
+
+    def _load_checkpoint_from_single_gaussian(self, ckpt_path): 
+        print('loading transformer weight from:' + ckpt_path)
+
+        ckpt = torch.load(ckpt_path)
+        model_weight = ckpt['model_G_state_dict']
+        transformer_weight = {
+            k[len("1."):]: v.to(device)
+            for k, v in model_weight.items()
+            if k.startswith("1.in_net") or k.startswith("1.blocks.")
+        }
+
+        self.net_G.Backbone.load_state_dict(transformer_weight)
+
+        linear_weight = {
+            k[len("2."):]: v.to(device)
+            for k, v in model_weight.items()
+            if k.startswith("2.out_net_mean") or k.startswith("2.out_net_std") or k.startswith("2.out_net_corr")
+        }
+
+        heading_weight = {
+            k[len("2.out_net_cos_sin_heading."):]: v.to(device)
+            for k, v in model_weight.items()
+            if k.startswith("2.out_net_cos_sin_heading")
+        }
+
+        for i, head in enumerate(self.net_G.P):
+            with torch.no_grad():          
+                for name, tensor in linear_weight.items():
+                    names = name.split('.')
+                    target_param = getattr(head, names[0]) 
+                    if name.endswith(".weight"):
+                        target_param.weight.copy_(tensor)
+                    elif name.endswith(".bias"):
+                        target_param.bias.copy_(tensor)
+
+        self.net_G.out_net_cos_sin_heading.load_state_dict(heading_weight)
+        
+        # for k, v in model_weight.items():
+        #     print(k)
+
+        # print("-----------")
+        # for name, param in self.net_G.P.named_parameters():
+        #     print(name)
+
+
+        
     def _save_checkpoint(self, ckpt_name):
         torch.save({
             'epoch_id': self.epoch_id,
@@ -529,21 +602,196 @@ class Trainer_gmn(object):
 
 
             # # ----------------method 3: L1_Loss----------------
-            # if self.epoch_id <= 50:
-            #     mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=True, if_std_grad=False, if_corr_grad=False, if_pi_grad=False)
+            if self.epoch_id <= self.epoch_mu:
+                mu, std, corr, cos_sin_heading, pi_all = self.net_G(x_input, if_transformer=True, if_heading=True, if_mean_grad=True, if_std_grad=False, if_corr_grad=False, if_pi_grad=False)
 
-            #     # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
-            #     mu_1 = mu[:,:,0,:]
-            #     std_1 = std[:,:,0,:]
-            #     corr_1 = corr[:,:,0].unsqueeze(-1)
+                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-            #     mu_2 = mu[:,:,1,:]
-            #     std_2 = std[:,:,1,:]
-            #     corr_2 = corr[:,:,1].unsqueeze(-1)
+                cos_sin_heading = cos_sin_heading * mask_cos_sin_heading
+                self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
-            #     mu_3 = mu[:,:,2,:]
-            #     std_3 = std[:,:,2,:]
-            #     corr_3 = corr[:,:,2].unsqueeze(-1)
+                self.loss_nll = self.reg_loss_heading
+                
+                L1_loss_all = torch.abs(mu - gt_pos.unsqueeze(2))
+                L1_loss_all = L1_loss_all.mean(dim=-1)
+                _, best_idx = L1_loss_all.min(dim=2)
+
+                idx_choose = best_idx.long().unsqueeze(-1).unsqueeze(-1)
+                idx_choose = idx_choose.expand(-1, -1, 1, 2)
+                posi = torch.gather(mu, dim=2, index=idx_choose).squeeze(2)
+
+                L1_loss_final = self.regression_loss_func_pos(y_pred_mean=posi, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+
+                self.loss_nll = self.loss_nll + L1_loss_final
+
+                x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
+                x_pred = x_pred * self.rollout_mask
+
+                self.rollout_pos.append(x_pred)
+                self.G_pred_std.append(std)
+                self.G_pred_corr.append(corr)
+                self.G_pred_pi.append(pi_all)
+
+                mask_posi = (mask_pos.sum(dim=-1) == 2).float()
+                branch_choice = best_idx.masked_fill(mask_posi == 0, -1)
+
+                self.branch_0[0] += (branch_choice == 0).sum().item()
+                self.branch_1[0] += (branch_choice == 1).sum().item()
+                self.branch_2[0] += (branch_choice == 2).sum().item()
+                
+                # 1.
+                # heat map : random choose some start point and do simulation for a while for each start point. 
+                # [gmm variance] 
+
+                # 2. realistic.
+                # 4 maps --- 
+
+                # 3. crash rate high --> dangerous    --- case study
+
+
+                # TRB results
+                # alignment work
+                # alignment visualization ---> image series include 3 lights 
+                # cost when t=0 & t=t*
+
+                # Abormal detection 
+
+            elif self.epoch_id <= self.epoch_std:
+                mu, std, corr, cos_sin_heading, pi_all = self.net_G(x_input, if_transformer=False, if_heading=False, if_mean_grad=False, if_std_grad=True, if_corr_grad=True, if_pi_grad=False)
+
+                # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
+                std_x = std[:,:,:,0]
+                std_y = std[:,:,:,1]
+                row1 = torch.stack([std_x, torch.zeros_like(std_x)], dim=-1)
+                row2 = torch.stack([corr*std_y, torch.sqrt(1-corr**2)*std_y], dim=-1)
+                L = torch.stack([row1, row2], dim=-2)
+
+    
+                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                
+                mask_posi = (mask_pos.sum(dim=-1) == 2).float()
+
+                gt_pos_exp = gt_pos.unsqueeze(2).expand(-1, -1, 3, -1)
+                mvn = torch.distributions.MultivariateNormal(loc=mu, scale_tril=L)
+                nll_all = -mvn.log_prob(gt_pos_exp)
+
+                min_nll, best_idx = nll_all.min(dim=2)
+                loss_total = (min_nll * mask_posi).sum()       
+                valid_num  = mask_posi.sum()
+                final_loss = loss_total / (valid_num + 1e-9)
+
+                self.loss_nll = final_loss * 1e-5
+
+                one_hot_idx = F.one_hot(best_idx, num_classes=3).float()
+                eps_sample = torch.zeros_like(mu)
+                posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
+                posi = (one_hot_idx.unsqueeze(-1) * posi).sum(dim=2)
+                
+
+                x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
+                x_pred = x_pred * self.rollout_mask  # For future rollouts
+
+                self.rollout_pos.append(x_pred)
+                self.G_pred_std.append(std)
+                self.G_pred_corr.append(corr)
+                self.G_pred_pi.append(pi_all)
+
+                branch_choice = best_idx.masked_fill(mask_posi == 0, -1)
+
+                self.branch_0[1] += (branch_choice == 0).sum().item()
+                self.branch_1[1] += (branch_choice == 1).sum().item()
+                self.branch_2[1] += (branch_choice == 2).sum().item()
+
+            else:
+                mu, std, corr, cos_sin_heading, pi_all = self.net_G(x_input, if_transformer=False, if_heading=False, if_mean_grad=False, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
+
+                std_x = std[:,:,:,0]
+                std_y = std[:,:,:,1]
+                row1 = torch.stack([std_x, torch.zeros_like(std_x)], dim=-1)
+                row2 = torch.stack([corr*std_y, torch.sqrt(1-corr**2)*std_y], dim=-1)
+                L = torch.stack([row1, row2], dim=-2)
+
+
+                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                mask_posi = (mask_pos.sum(dim=-1) == 2).float()
+
+                L1_loss_all = torch.abs(mu - gt_pos.unsqueeze(2))
+                L1_loss_all = L1_loss_all.mean(dim=-1)
+                _, best_idx = L1_loss_all.min(dim=2)
+
+                ignore_index = -100
+                labels_raw = best_idx.masked_fill(mask_posi == 0, ignore_index)
+                labels = labels_raw.view(-1)
+                logits = pi_all.view(-1, 3)
+
+                self.loss_nll = F.cross_entropy(logits, labels, ignore_index=ignore_index)
+
+                eps_sample = torch.zeros_like(mu)
+                pred_idx = pi_all.argmax(dim=-1)
+                one_hot_idx = F.one_hot(pred_idx, num_classes=3).float()
+
+                posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
+                posi = (one_hot_idx.unsqueeze(-1) * posi).sum(dim=2)
+
+                x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
+                x_pred = x_pred * self.rollout_mask  # For future rollouts
+
+                self.rollout_pos.append(x_pred)
+                self.G_pred_std.append(std)
+                self.G_pred_corr.append(corr)
+                self.G_pred_pi.append(pi_all)
+
+
+
+                # std_x = std[:,:,:,0]
+                # std_y = std[:,:,:,1]
+                # row1 = torch.stack([std_x, torch.zeros_like(std_x)], dim=-1)
+                # row2 = torch.stack([corr*std_y, torch.sqrt(1-corr**2)*std_y], dim=-1)
+                # L = torch.stack([row1, row2], dim=-2)
+
+                # dis_mu_L = distributions.MultivariateNormal(loc=mu, scale_tril=L)
+                # dis_mix = distributions.Categorical(probs=pi_all)
+                # gaussian_mixture = distributions.MixtureSameFamily(dis_mix, dis_mu_L)
+
+                # weight_nll_whole = 1e-9
+                # gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                # self.loss_nll = -weight_nll_whole * gaussian_mixture.log_prob(gt_pos * mask_pos).mean()
+
+                # # lambda_H = 1e-5 
+                # # entropy = -(pi_all * (pi_all+1e-8).log()).sum(-1).mean()
+                # # self.loss_nll += lambda_H * entropy
+                
+                # lambda_H = 1e-6
+                # log_pi = (pi_all + 1e-8).log()
+                # dkl = -log_pi.sum(-1).mean()
+
+                # self.loss_nll = self.loss_nll + lambda_H * dkl
+
+                #sample the output, multi-times
+                # eps_sample = torch.zeros_like(mu)
+
+                # posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
+                # posi = (choice_pi.unsqueeze(-1) * posi).sum(dim=2)
+
+                # x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
+                # x_pred = x_pred * self.rollout_mask  # For future rollouts
+
+                # self.rollout_pos.append(x_pred)
+                # self.G_pred_std.append(std)
+                # self.G_pred_corr.append(corr)
+                # self.G_pred_pi.append(pi_all)
+
+
+            # gmm  infe :  x_input (M)   N : ignore other cars  M-N : masked 
+            #   x_input_masked -> M-N (0-t) -> 0   
+            # t1  i x_input[i] only this car -> x_output_i  x_output3
+            # M-1 x_input_origin x_output x_output
+
+
+            # ----------------method 4: train std and corr separately----------------
+            # if self.epoch_id <= self.epoch_mu:
+            #     mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input, if_transformer=True, if_mean_grad=True, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
 
             #     gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
             #     gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
@@ -551,29 +799,14 @@ class Trainer_gmn(object):
             #     cos_sin_heading = cos_sin_heading * mask_cos_sin_heading
             #     self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
-            #     # posi_1 = (mu_1 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
-            #     # posi_2 = (mu_2 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
-            #     # posi_3 = (mu_3 + x_input[-1,:,:int(self.output_dim / 2)]) * self.rollout_mask[:,:,:2]
-            #     posi_1 = mu_1 * self.rollout_mask[:,:,:2]
-            #     posi_2 = mu_2 * self.rollout_mask[:,:,:2]
-            #     posi_3 = mu_3 * self.rollout_mask[:,:,:2]
+            #     posi = (pi_all.unsqueeze(-1) * mu).sum(dim=2)
+            #     posi = posi * self.rollout_mask[:,:,:2]
 
-            #     L1_mu_1 = self.regression_loss_func_pos(y_pred_mean=posi_1, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-            #     L1_mu_2 = self.regression_loss_func_pos(y_pred_mean=posi_2, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-            #     L1_mu_3 = self.regression_loss_func_pos(y_pred_mean=posi_3, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+            #     L1_mu_1 = self.regression_loss_func_pos(y_pred_mean=posi, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
 
-            #     L1_mu_all = torch.stack([L1_mu_1, L1_mu_2, L1_mu_3])
-            #     L1_mu_min, idx_mu = L1_mu_all.min(0)
-
-            #     self.loss_nll = L1_mu_min + self.reg_loss_heading
+            #     self.loss_nll = L1_mu_1 + self.reg_loss_heading
             #     #print(self.loss_nll.item())
-            #     if idx_mu == 0:
-            #         posi = posi_1
-            #     elif idx_mu == 1:
-            #         posi = posi_2
-            #     else:
-            #         posi = posi_3
-
+                
             #     x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
             #     x_pred = x_pred * self.rollout_mask
 
@@ -582,74 +815,38 @@ class Trainer_gmn(object):
             #     self.G_pred_corr.append(corr)
             #     self.G_pred_pi.append(pi_all)
 
-            # elif self.epoch_id <= 250:
-            #     mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=False, if_std_grad=True, if_corr_grad=True, if_pi_grad=False)
+            # elif self.epoch_id <= self.epoch_std:
+            #     mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input, if_transformer=False, if_mean_grad=False, if_std_grad=True, if_corr_grad=True, if_pi_grad=False)
 
-            #     # construct n_gaussian gaussian, compute -log separately, then get the min to be the nll loss
-            #     mu_1 = mu[:,:,0,:]
-            #     std_1 = std[:,:,0,:]
-            #     corr_1 = corr[:,:,0].unsqueeze(-1)
-            #     L_1 = L[:,:,0,:,:]
-    
-            #     mu_2 = mu[:,:,1,:]
-            #     std_2 = std[:,:,1,:]
-            #     corr_2 = corr[:,:,1].unsqueeze(-1)
-            #     L_2 = L[:,:,1,:,:]
-    
-            #     mu_3 = mu[:,:,2,:]
-            #     std_3 = std[:,:,2,:]
-            #     corr_3 = corr[:,:,2].unsqueeze(-1)
-            #     L_3 = L[:,:,2,:,:]
-    
             #     gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
                 
             #     #gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
             #     #self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
                 
-            #     eps1, eps2 = self._sampling_from_standard_gaussian(mu_1)
+            #     eps_sample = torch.zeros_like(mu)
+            #     posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
+            #     posi = (pi_all.unsqueeze(-1) * posi).sum(dim=2)
+            #     posi = posi * self.rollout_mask[:,:,:2]
 
-            #     x_input_1 = self._sampling_from_mu_and_std(mu_1, std_1, corr_1, eps1, eps2)
-            #     x_input_2 = self._sampling_from_mu_and_std(mu_2, std_2, corr_2, eps1, eps2)
-            #     x_input_3 = self._sampling_from_mu_and_std(mu_3, std_3, corr_3, eps1, eps2)
-
-            #     x_input_1 = x_input_1 * self.rollout_mask[:,:,:2]
-            #     x_input_2 = x_input_2 * self.rollout_mask[:,:,:2]
-            #     x_input_3 = x_input_3 * self.rollout_mask[:,:,:2]
-
-            #     L1_loss_1 = self.regression_loss_func_pos(y_pred_mean=x_input_1, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-            #     L1_loss_2 = self.regression_loss_func_pos(y_pred_mean=x_input_2, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-            #     L1_loss_3 = self.regression_loss_func_pos(y_pred_mean=x_input_3, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+            #     L1_loss_1 = self.regression_loss_func_pos(y_pred_mean=posi, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
 
             #     # add NLL Loss for every branch
-            #     mvn_1 = distributions.MultivariateNormal(loc=mu_1, scale_tril=L_1)
-            #     mvn_2 = distributions.MultivariateNormal(loc=mu_2, scale_tril=L_2)
-            #     mvn_3 = distributions.MultivariateNormal(loc=mu_3, scale_tril=L_3)
+            #     weight_nll_whole = 0.5 * 1e-4
+            #     dis_mu_L = distributions.MultivariateNormal(loc=mu, scale_tril=L)
+            #     dis_mix = distributions.Categorical(probs=pi_all)
+            #     gaussian_mixture = distributions.MixtureSameFamily(dis_mix, dis_mu_L)
 
-            #     weight_nll = 0.01
-            #     nll_loss_1 = -weight_nll * mvn_1.log_prob(self.gt[:,:,:2]).mean()
-            #     nll_loss_2 = -weight_nll * mvn_2.log_prob(self.gt[:,:,:2]).mean()
-            #     nll_loss_3 = -weight_nll * mvn_3.log_prob(self.gt[:,:,:2]).mean()
+            #     loss_nll_part = -gaussian_mixture.log_prob(self.gt[:,:,:2]).mean()
 
-            #     # print(f"dis1:{L1_loss_1}, {nll_loss_1}")
-            #     # print(f"dis1:{L1_loss_2}, {nll_loss_2}")
-            #     # print(f"dis1:{L1_loss_3}, {nll_loss_3}")
+            #     #self.loss_nll = L1_loss_1 # + loss_nll_part # + self.reg_loss_heading
+            #     self.loss_nll = loss_nll_part
+            #     lambda_std = self.lambda_std
+            #     penalty_std = F.relu(1e-2 - std).pow(2).mean()
+            #     self.loss_nll += lambda_std * penalty_std
 
-            #     loss_all_1 = nll_loss_1 + L1_loss_1
-            #     loss_all_2 = nll_loss_2 + L1_loss_2
-            #     loss_all_3 = nll_loss_3 + L1_loss_3
-
-
-            #     L1_loss_all = torch.stack([loss_all_1, loss_all_2, loss_all_3])
-            #     L1_loss_min, idx = L1_loss_all.min(dim=0)
-
-            #     self.loss_nll = L1_loss_min # + self.reg_loss_heading
-
-            #     if idx == 0:
-            #         posi = x_input_1
-            #     elif idx == 1:
-            #         posi = x_input_2
-            #     else:
-            #         posi = x_input_3
+            #     lambda_corr = self.lambda_corr
+            #     penalty_corr = F.relu(torch.abs(corr) - 0.97).pow(2).mean()
+            #     self.loss_nll += lambda_corr * penalty_corr
 
             #     x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
             #     x_pred = x_pred * self.rollout_mask  # For future rollouts
@@ -660,7 +857,7 @@ class Trainer_gmn(object):
             #     self.G_pred_pi.append(pi_all)
 
             # else:
-            #     mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input, if_mean_grad=False, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
+            #     mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input, if_transformer=False, if_mean_grad=False, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
 
             #     dis_mu_L = distributions.MultivariateNormal(loc=mu, scale_tril=L)
             #     dis_mix = distributions.Categorical(probs=pi_all)
@@ -689,104 +886,6 @@ class Trainer_gmn(object):
             #     self.G_pred_std.append(std)
             #     self.G_pred_corr.append(corr)
             #     self.G_pred_pi.append(pi_all)
-
-            # ----------------method 4: train std and corr separately----------------
-            if self.epoch_id <= 50:
-                mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=True, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
-
-                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-                gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
-
-                cos_sin_heading = cos_sin_heading * mask_cos_sin_heading
-                self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
-
-                posi = (pi_all.unsqueeze(-1) * mu).sum(dim=2)
-                posi = posi * self.rollout_mask[:,:,:2]
-
-                L1_mu_1 = self.regression_loss_func_pos(y_pred_mean=posi, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-
-                self.loss_nll = L1_mu_1 + self.reg_loss_heading
-                #print(self.loss_nll.item())
-                
-                x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
-                x_pred = x_pred * self.rollout_mask
-
-                self.rollout_pos.append(x_pred)
-                self.G_pred_std.append(std)
-                self.G_pred_corr.append(corr)
-                self.G_pred_pi.append(pi_all)
-
-            elif self.epoch_id <= 350:
-                mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input,if_mean_grad=False, if_std_grad=True, if_corr_grad=True, if_pi_grad=False)
-
-                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-                
-                #gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
-                #self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=cos_sin_heading, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
-                
-                eps_sample = torch.zeros_like(mu)
-                posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
-                posi = (pi_all.unsqueeze(-1) * posi).sum(dim=2)
-                posi = posi * self.rollout_mask[:,:,:2]
-
-                L1_loss_1 = self.regression_loss_func_pos(y_pred_mean=posi, y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-
-                # add NLL Loss for every branch
-                weight_nll_whole = 0.5 * 1e-4
-                dis_mu_L = distributions.MultivariateNormal(loc=mu, scale_tril=L)
-                dis_mix = distributions.Categorical(probs=pi_all)
-                gaussian_mixture = distributions.MixtureSameFamily(dis_mix, dis_mu_L)
-
-                loss_nll_part = -gaussian_mixture.log_prob(self.gt[:,:,:2]).mean()
-
-                #self.loss_nll = L1_loss_1 # + loss_nll_part # + self.reg_loss_heading
-                self.loss_nll = loss_nll_part
-                lambda_std = self.lambda_std
-                penalty_std = F.relu(1e-2 - std).pow(2).mean()
-                self.loss_nll += lambda_std * penalty_std
-
-                lambda_corr = self.lambda_corr
-                penalty_corr = F.relu(torch.abs(corr) - 0.97).pow(2).mean()
-                self.loss_nll += lambda_corr * penalty_corr
-
-                x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
-                x_pred = x_pred * self.rollout_mask  # For future rollouts
-
-                self.rollout_pos.append(x_pred)
-                self.G_pred_std.append(std)
-                self.G_pred_corr.append(corr)
-                self.G_pred_pi.append(pi_all)
-
-            else:
-                mu, std, corr, cos_sin_heading, pi_all, L = self.net_G(x_input, if_mean_grad=False, if_std_grad=False, if_corr_grad=False, if_pi_grad=True)
-
-                dis_mu_L = distributions.MultivariateNormal(loc=mu, scale_tril=L)
-                dis_mix = distributions.Categorical(probs=pi_all)
-                gaussian_mixture = distributions.MixtureSameFamily(dis_mix, dis_mu_L)
-
-                weight_nll_whole = 0.5 * 1e-4
-                self.loss_nll = -weight_nll_whole * gaussian_mixture.log_prob(self.gt[:,:,:2]).mean()
-
-                lambda_H = self.lambda_H  
-                entropy = -(pi_all * (pi_all+1e-8).log()).sum(-1).mean()
-                self.loss_nll += lambda_H * entropy
-
-                #sample the output, multi-times
-                eps_sample = torch.zeros_like(mu)
-                # for s_t in range(self.sample_times):
-                #     eps_sample += torch.randn_like(mu)
-                # eps_sample /= self.sample_times
-
-                posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
-                posi = (pi_all.unsqueeze(-1) * posi).sum(dim=2)
-
-                x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
-                x_pred = x_pred * self.rollout_mask  # For future rollouts
-
-                self.rollout_pos.append(x_pred)
-                self.G_pred_std.append(std)
-                self.G_pred_corr.append(corr)
-                self.G_pred_pi.append(pi_all)
 
 
     def _compute_acc(self):
@@ -899,7 +998,11 @@ class Trainer_gmn(object):
         In each minibatch, we perform gradient descent on the network parameters.
         """
 
-        self._load_checkpoint(start_id=-1)
+        # self._load_checkpoint_from_single_gaussian(ckpt_path=self.single_ckpt_path)
+        # self._load_checkpoint(start_id=34)
+
+        self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net/rounD_nG3_trial_3_3/checkpoints/ckpt_799.pt")
+        
         # loop over the dataset multiple times
         for self.epoch_id in range(self.epoch_to_start, self.max_num_epochs):
             # ################## train #################
@@ -908,8 +1011,15 @@ class Trainer_gmn(object):
             self.is_training = True
             self.net_G.train()  # Set model to training mode
             # Iterate over data.
+
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 self._forward_pass(batch, rollout=1)
+
+                #record branch
+
+                with open(os.path.join(self.vis_dir, 'branch_num.pkl'), 'wb') as fbr:
+                    pickle.dump((self.branch_0, self.branch_1, self.branch_2), fbr)
+
 
                 # # update D
                 # set_requires_grad(self.net_D, True)
@@ -930,7 +1040,8 @@ class Trainer_gmn(object):
                 self._compute_acc()
 
                 self._collect_running_batch_states()
-                self._update_logfile_batch_train()
+                #self._update_logfile_batch_train()
+                
                 # if self.batch_id == 6:
                 #     break
             self._collect_epoch_states()

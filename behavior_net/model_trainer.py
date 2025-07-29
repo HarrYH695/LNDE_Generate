@@ -95,6 +95,8 @@ class Trainer(object):
         self.batch_mean_corr = 0.0
         self.batch_id = 0
         self.epoch_id = 0
+        self.epoch_mu = configs['epoch_mu']
+        self.epoch_std = configs['epoch_std']
 
         self.checkpoint_dir = configs["checkpoint_dir"]
         self.vis_dir = configs["vis_dir"]
@@ -441,28 +443,6 @@ class Trainer(object):
             pred_mean=pred_pos_mean, pred_std=pred_pos_std, vis_path=vis_path)
 
     def _sampling_from_mu_and_std(self, mu, std, heading_mu, corr):
-        bs, _, _ = mu.shape #[bs, 32, 2]
-        epsilons_lat = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
-        epsilons_lon = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
-        epsilons_1 = torch.reshape(epsilons_lat, [bs, -1, 1])
-        epsilons_2 = torch.reshape(epsilons_lon, [bs, -1, 1])
-
-        #[bs, 32, 1]
-        lat_mean = mu[:, :, 0:self.pred_length]
-        lon_mean = mu[:, :, self.pred_length:]
-        lat_std = std[:, :, 0:self.pred_length]
-        lon_std = std[:, :, self.pred_length:]
-        # lat_std = torch.sqrt(std[:, :, 0:self.pred_length])
-        # lon_std = torch.sqrt(std[:, :, self.pred_length:])
-
-        lat = lat_mean + lat_std * epsilons_1
-        lon = lon_mean + lon_std * epsilons_1 * corr + lon_std * torch.sqrt(1 - corr ** 2) * epsilons_2
-        # print(f"lat:{lat.shape}")
-        # print(f"lon:{lon.shape}")
-
-        return lat, lon, heading_mu[:,:,0:self.pred_length], heading_mu[:,:,self.pred_length:]
-
-
         # bs, _, _ = mu.shape #[bs, 32, 2]
         # epsilons_lat = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
         # epsilons_lon = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
@@ -482,7 +462,29 @@ class Trainer(object):
         # # print(f"lat:{lat.shape}")
         # # print(f"lon:{lon.shape}")
 
-        # return torch.cat([lat, lon, heading_mu], dim=-1)
+        # return lat, lon, heading_mu[:,:,0:self.pred_length], heading_mu[:,:,self.pred_length:]
+
+
+        bs, _, _ = mu.shape #[bs, 32, 2]
+        epsilons_lat = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
+        epsilons_lon = torch.tensor([random.gauss(0, 1) for _ in range(bs * self.m_tokens)]).to(device).detach()
+        epsilons_1 = torch.reshape(epsilons_lat, [bs, -1, 1])
+        epsilons_2 = torch.reshape(epsilons_lon, [bs, -1, 1])
+
+        #[bs, 32, 1]
+        lat_mean = mu[:, :, 0:self.pred_length]
+        lon_mean = mu[:, :, self.pred_length:]
+        lat_std = std[:, :, 0:self.pred_length]
+        lon_std = std[:, :, self.pred_length:]
+        # lat_std = torch.sqrt(std[:, :, 0:self.pred_length])
+        # lon_std = torch.sqrt(std[:, :, self.pred_length:])
+
+        lat = lat_mean + lat_std * epsilons_1
+        lon = lon_mean + lon_std * epsilons_1 * corr + lon_std * torch.sqrt(1 - corr ** 2) * epsilons_2
+        # print(f"lat:{lat.shape}")
+        # print(f"lon:{lon.shape}")
+
+        return torch.cat([lat, lon, heading_mu], dim=-1)
 
 
         # bs, _, _ = mu.shape
@@ -525,72 +527,77 @@ class Trainer(object):
         self.G_pred_cos, self.G_pred_sin = [], []
 
         # new forward, with joint gaussian, multi-rollout
-        for roll_i in range(rollout):
-            mu, std, corr, cos_sin_heading = self.net_G(x_input, if_mean_grad=True, if_std_grad=False, if_corr_grad=False)
-            # print(f"mu:{mu.shape}")
-            # print(f"std:{std.shape}")
-            # print(f"corr:{corr.shape}")
-            # print(f"cos_sin_heading:{cos_sin_heading.shape}")
-
-            pred_lat, pred_lon, pred_cos, pred_sin = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
-            
-            pred_lat = pred_lat * (self.rollout_mask[:,:,roll_i].unsqueeze(-1))
-            pred_lon = pred_lon * (self.rollout_mask[:,:,self.rollout_num + roll_i].unsqueeze(-1))
-            pred_cos = pred_cos * (self.rollout_mask[:,:,self.rollout_num * 2 + roll_i].unsqueeze(-1))
-            pred_sin = pred_sin * (self.rollout_mask[:,:,self.rollout_num * 3 + roll_i].unsqueeze(-1))
-
-            print(f"pred_lat:{pred_lat.shape}")
-            print(f"pred_lon:{pred_lon.shape}")
-            print(f"pred_cos:{pred_cos.shape}")
-            print(f"pred_sin:{pred_sin.shape}")
-
-            lat_old = x_input[:,:,1:5]
-            lon_old = x_input[:,:,6:10]
-            cos_old = x_input[:,:,11:15]
-            sin_old = x_input[:,:,16:20]
-
-            x_input = torch.cat([lat_old, pred_lat, lon_old, pred_lon, cos_old, pred_cos, sin_old, pred_sin], dim=-1)
-
-            print(f"x_input_roll_{roll_i}:{x_input.shape}")
-
-            self.G_pred_mean_lat.append(pred_lat)
-            self.G_pred_mean_lon.append(pred_lon)
-            self.G_pred_cos.append(pred_cos)
-            self.G_pred_sin.append(pred_sin)
-
-        pred_traj = self.G_pred_mean_lat[0]
-        for i in range(1, self.rollout_num):
-            pred_traj = torch.cat([pred_traj, self.G_pred_mean_lat[i]])
-
-        for i in range(self.rollout_num):
-            pred_traj = torch.cat([pred_traj, self.G_pred_mean_lon[i]])
-
-        for i in range(self.rollout_num):
-            pred_traj = torch.cat([pred_traj, self.G_pred_cos[i]])
-
-        for i in range(self.rollout_num):
-            pred_traj = torch.cat([pred_traj, self.G_pred_sin[i]])
-        
-        self.rollout_pos.append(pred_traj)
-            
-            #print(f"x_input:{x_input.shape}")
-
-        # # new forward, with joint gaussian
-        # for _ in range(rollout):
-        #     mu, std, corr, cos_sin_heading = self.net_G(x_input)
+        # for roll_i in range(rollout):
+        #     mu, std, corr, cos_sin_heading = self.net_G(x_input, if_transformer=True, if_mean_grad=True, if_std_grad=False, if_corr_grad=False)
         #     # print(f"mu:{mu.shape}")
         #     # print(f"std:{std.shape}")
         #     # print(f"corr:{corr.shape}")
         #     # print(f"cos_sin_heading:{cos_sin_heading.shape}")
 
-        #     x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
-        #     #print(f"x_input:{x_input.shape}")
-        #     x_input = x_input * self.rollout_mask
+        #     pred_lat, pred_lon, pred_cos, pred_sin = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
+            
+        #     pred_lat = pred_lat * (self.rollout_mask[:,:,roll_i].unsqueeze(-1))
+        #     pred_lon = pred_lon * (self.rollout_mask[:,:,self.rollout_num + roll_i].unsqueeze(-1))
+        #     pred_cos = pred_cos * (self.rollout_mask[:,:,self.rollout_num * 2 + roll_i].unsqueeze(-1))
+        #     pred_sin = pred_sin * (self.rollout_mask[:,:,self.rollout_num * 3 + roll_i].unsqueeze(-1))
 
-        #     self.rollout_pos.append(x_input)
-        #     self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
-        #     self.G_pred_std.append(std)
-        #     self.G_pred_corr.append(corr)
+        #     print(f"pred_lat:{pred_lat.shape}")
+        #     print(f"pred_lon:{pred_lon.shape}")
+        #     print(f"pred_cos:{pred_cos.shape}")
+        #     print(f"pred_sin:{pred_sin.shape}")
+
+        #     lat_old = x_input[:,:,1:5]
+        #     lon_old = x_input[:,:,6:10]
+        #     cos_old = x_input[:,:,11:15]
+        #     sin_old = x_input[:,:,16:20]
+
+        #     x_input = torch.cat([lat_old, pred_lat, lon_old, pred_lon, cos_old, pred_cos, sin_old, pred_sin], dim=-1)
+
+        #     print(f"x_input_roll_{roll_i}:{x_input.shape}")
+
+        #     self.G_pred_mean_lat.append(pred_lat)
+        #     self.G_pred_mean_lon.append(pred_lon)
+        #     self.G_pred_cos.append(pred_cos)
+        #     self.G_pred_sin.append(pred_sin)
+
+        # pred_traj = self.G_pred_mean_lat[0]
+        # for i in range(1, self.rollout_num):
+        #     pred_traj = torch.cat([pred_traj, self.G_pred_mean_lat[i]])
+
+        # for i in range(self.rollout_num):
+        #     pred_traj = torch.cat([pred_traj, self.G_pred_mean_lon[i]])
+
+        # for i in range(self.rollout_num):
+        #     pred_traj = torch.cat([pred_traj, self.G_pred_cos[i]])
+
+        # for i in range(self.rollout_num):
+        #     pred_traj = torch.cat([pred_traj, self.G_pred_sin[i]])
+        
+        # self.rollout_pos.append(pred_traj)
+            
+            #print(f"x_input:{x_input.shape}")
+
+        # new forward, with joint gaussian
+        for _ in range(rollout):
+            mu, std, corr, cos_sin_heading = self.net_G(x_input)
+            # print(f"mu:{mu.shape}")
+            # print(f"std:{std.shape}")
+            # print(f"corr:{corr.shape}")
+            # print(f"cos_sin_heading:{cos_sin_heading.shape}")
+            if self.epoch_id <= self.epoch_mu:
+                gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+                gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+
+                
+            else: 
+                x_input = self._sampling_from_mu_and_std(mu, std, cos_sin_heading, corr)
+                #print(f"x_input:{x_input.shape}")
+                x_input = x_input * self.rollout_mask
+
+                self.rollout_pos.append(x_input)
+                self.G_pred_mean.append(torch.cat([mu, cos_sin_heading], dim=-1))
+                self.G_pred_std.append(std)
+                self.G_pred_corr.append(corr)
             
             #print(f"x_input:{x_input.shape}")
 
@@ -656,30 +663,31 @@ class Trainer(object):
 
 
     def _compute_loss_G(self):
-        # reg loss (between pred0 and gt)
-        G_pred_mean_at_step0 = self.G_pred_mean[0]
-        #G_pred_std_at_step0 = self.G_pred_std[0]
-        sample_at_step0 = self.rollout_pos[0]
+        self.batch_loss_G = self.loss_1
+        # # reg loss (between pred0 and gt)
+        # G_pred_mean_at_step0 = self.G_pred_mean[0]
+        # #G_pred_std_at_step0 = self.G_pred_std[0]
+        # sample_at_step0 = self.rollout_pos[0]
 
-        G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
-        #G_pred_std_pos_at_step0 = G_pred_std_at_step0
+        # G_pred_pos_at_step0, G_pred_cos_sin_heading_at_step0 = G_pred_mean_at_step0[:, :, :int(self.output_dim / 2)], G_pred_mean_at_step0[:, :, int(self.output_dim / 2):]
+        # #G_pred_std_pos_at_step0 = G_pred_std_at_step0
 
-        gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
-        gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
+        # gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
+        # gt_cos_sin_heading, mask_cos_sin_heading = self.gt[:, :, int(self.output_dim / 2):], self.mask[:, :, int(self.output_dim / 2):]
 
-        self.reg_loss_position = self.regression_loss_func_pos(y_pred_mean=sample_at_step0[:, :, :int(self.output_dim / 2)], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
-        self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
+        # self.reg_loss_position = self.regression_loss_func_pos(y_pred_mean=sample_at_step0[:, :, :int(self.output_dim / 2)], y_pred_std=None, y_true=gt_pos, weight=mask_pos)
+        # self.reg_loss_heading = 20 * self.regression_loss_func_heading(y_pred_mean=G_pred_cos_sin_heading_at_step0, y_pred_std=None, y_true=gt_cos_sin_heading, weight=mask_cos_sin_heading)
 
-        D_pred_fake = self.net_D(sample_at_step0)
-        #print(f"D_pred_fake:{D_pred_fake.shape}")
-        # Filter out ghost vehicles
-        # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
-        ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4*self.rollout_num).flatten()  # bs * m_token.
-        D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
-        #print(f"D_pred_fake_filtered:{D_pred_fake_filtered.shape}")
-        self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
+        # D_pred_fake = self.net_D(sample_at_step0)
+        # #print(f"D_pred_fake:{D_pred_fake.shape}")
+        # # Filter out ghost vehicles
+        # # Reformat the size into num x n, where num = bs * m_token - ghost vehicles (also for those have missing values in gt)
+        # ghost_vehicles_mask = (torch.sum(self.mask, dim=-1) == 4*self.rollout_num).flatten()  # bs * m_token.
+        # D_pred_fake_filtered = (D_pred_fake.flatten())[ghost_vehicles_mask]
+        # #print(f"D_pred_fake_filtered:{D_pred_fake_filtered.shape}")
+        # self.G_adv_loss = 0.1*self.gan_loss(D_pred_fake_filtered, True)
 
-        self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
+        # self.batch_loss_G = self.reg_loss_position + self.reg_loss_heading + self.G_adv_loss
         #print(self.reg_loss_position.item(), self.reg_loss_heading.item(), self.G_adv_loss.item(), self.batch_loss_G.item())
 
 

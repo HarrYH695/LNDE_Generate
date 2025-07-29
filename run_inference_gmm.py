@@ -74,50 +74,34 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference_gmm(configs=configs)
     
-    #test!
-    #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
-    # with open("/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/wrong_case_2.txt", "r") as f:
-    #     for line in f:
-    #         file_info = line.strip()
-    #         file_info = line[:-5]
-    #         file_name, num_s = file_info.split('_')
-    #         data = pickle.load(open(file_t+file_name+'.pkl', "rb"))
-    #         timeb = data["states_considered"]
-    #         timeb_considered = timeb[int(num_s):int(num_s)+6]
-    #         num_idx=np.zeros(2)
-    #         num_idx[0] = int(file_name)
-    #         num_idx[1] = int(num_s)
-    #         simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=num_idx, poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_poc_changed/")
+    #test and gen ignore data
+    # save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_gmm_b3_val/'
+    # if not os.path.exists(save_dir):
+    #     os.makedirs(save_dir)
+
+    # for i in tqdm(range(2500)):
+    #     save_path_i = os.path.join(save_dir, f'{i}.pkl')
+    #     simulation_inference_model.generate_prob_ignore_results(save_path=save_path_i)
 
 
-    # file_idx = 4043
-    # start_i = 9
-    # file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_7/1/"
-    # data = pickle.load(open(file_t+f"{file_idx}.pkl", "rb"))
-    # timeb = data["states_considered"]
-    # timeb_considered = timeb[start_i:start_i+5]
-    # print(len(timeb_considered))
-    # simulation_inference_model.run_sim_steps_for_certain_TIME_BUFF(time_buff=timeb_considered, sim_num=100, result_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/", num_idx=np.zeros(2), poc_dir="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/")
 
-    # for i in tqdm(range(10)):
-    #     if os.path.exists("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl"):
-    #         data = pickle.load(open("/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res/"+f"0_0_{i}.pkl", "rb"))
-    #         simulation_inference_model.save_check_sample_result(time_buff=data, idx=f"{i}", save_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/z_res2/")
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    dir_name = "rD_gmm_6"
-    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new_gmm/" + dir_name + "/1/"
+
+    dir_name = "rD_trial_2_4"
+    save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/1_4/"
     if not os.path.exists(save_sim_path):
         os.makedirs(save_sim_path)
     coll_num = 0
-    for idx in tqdm(range(10)):
+    for idx in tqdm(range(15000, 20000)):
         #print(f"----------------{idx}----------------")
-        coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
+        coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx, if_all=True)
         coll_num += coll
     print(f"Find collision num: {coll_num}")
 
-    #Get the visual of 1000 results
+
+    # Get the visual of 1000 results
     # save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"
     # if not os.path.exists(save_path_1):
     #     os.makedirs(save_path_1)
@@ -145,7 +129,7 @@ if __name__ == '__main__':
     #                     simulation_inference_model.save_check_sample_result(time_buff=time_buff_all[win_start:(win_start+5)], idx="vis", save_path=dir_path, with_traj=True)
                         
                         
-                        #simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+5)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
+    #                     simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+5)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
 # python run_inference_gmm.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
 

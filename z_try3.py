@@ -1,40 +1,35 @@
 import numpy as np
 import torch
 import os
+import pickle
 
-# dir = "rD_Trial_2_vali_only"
+if __name__ == '__main__':
+    # dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net/'
+    # pickle_path = dir_path + 'rounD_nG3_trial_3_3/vis_training/branch_num.pkl'
 
-# file_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir + "/1/"
-# print(len(os.listdir(file_path)))
+    # with open(pickle_path, 'rb') as f1:
+    #     data = pickle.load(f1)
 
-# # file_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir + "/scene_videos/"
-# # print(len(os.listdir(file_path)))
+    # print(data)
 
-# L = torch.zeros((4,5,3,2,2))
-# a = torch.ones((4,5,3,2))
-# a[:,:,:,1] *= 3
-# b = torch.ones((4,5,3))*0.5
+    # dataset_file = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train/'
+    # sub_dir = os.listdir(dataset_file)
 
-# std_x = a[:,:,:,0]
-# std_y = a[:,:,:,1]
-# print(std_x.shape, std_y.shape)
+    # num_all = 0
 
-# # L[:,:,:,0,0] = std_x
-# # L[:,:,:,1,0] = std_y
-# # L[:,:,:,1,1] = std_y*b
-# # print(L)
+    # for sub in sub_dir:
+    #     subsub_dir = os.listdir(os.path.join(dataset_file, sub))
+    #     for subsub in subsub_dir:
+    #         files = os.listdir(os.path.join(dataset_file, sub, subsub))
+    #         num_all += len(files)
 
-# row1 = torch.stack([std_x, torch.zeros_like(std_x)], dim=-1)
-# print(row1.shape)
-# # print(row1)
-# row2 = torch.stack([std_y, std_y*b], dim=-1)
-# print(row2.shape)
+    # print(num_all)
 
-# L2 = torch.stack([row1, row2], dim=-2)
-# print(L2.shape)
-# print(L2)
+    # vehicle_list = pickle.load(open('/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train/rounD-17/08/00011311.pickle', "rb"))
+    # print(vehicle_list)
 
-# a = np.zeros((3,4,2))
-# b = a[:,:,:,None]
-# print(b.shape)
-# print(b)
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0726_2/rD_trial_2_4/1_2'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+    # python z_try3.py

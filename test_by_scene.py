@@ -57,10 +57,10 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     #simulation_inference_model = SimulationInference(configs=configs)
 
-    dir_name = "rD_b_seed_r4_2"
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/" 
-    file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/2/"
-    file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/check/"
+    dir_name = "rD_trial_2"
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_gmm_0714/" + dir_name + "/1/" 
+    file_t = "/nfs/turbo/coe-mcity/hanhy/LNDE_gmm_0714/" + dir_name + "/2/"
+    file_save = "/nfs/turbo/coe-mcity/hanhy/LNDE_gmm_0714/" + dir_name + "/check/"
 
     if not os.path.exists(file_save):
         os.makedirs(file_save)

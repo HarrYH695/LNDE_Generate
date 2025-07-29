@@ -147,7 +147,7 @@ class PredictionsHeads(nn.Module):
         # cos and sin heading
         self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
 
-    def forward(self, x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True):
+    def forward(self, x, if_mean_grad=False, if_std_grad=False, if_corr_grad=False):
 
         # shape x: batch_size x m_token x m_state
         if not if_mean_grad:
@@ -352,10 +352,14 @@ class Network_G(nn.Module):
         # self.if_corr_grad=True 
         # self.if_pi_grad=True
 
-    def forward(self, x, if_mean_grad=True, if_std_grad=True, if_corr_grad=True):
+    def forward(self, x, if_transformer=True, if_mean_grad=True, if_std_grad=True, if_corr_grad=True):
         x = self.M(x)
-        x = self.Backbone(x)
+        if if_transformer:
+            x = self.Backbone(x)
+        else:
+            with torch.no_grad():
+                x = self.Backbone(x)
 
-        out_mean, out_std, out_corr, out_cos_sin_heading, out_pi, out_L = self.P(x, if_mean_grad=if_mean_grad, if_std_grad=if_std_grad, if_corr_grad=if_corr_grad)
+        out_mean, out_std, out_corr, out_cos_sin_heading = self.P(x, if_mean_grad=if_mean_grad, if_std_grad=if_std_grad, if_corr_grad=if_corr_grad)
 
         return out_mean, out_std, out_corr, out_cos_sin_heading

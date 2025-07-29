@@ -27,36 +27,6 @@ parser.add_argument('--viz-flag', action='store_true', help='Default is False, a
 
 args = parser.parse_args()
 
-class GeoMapping(GeoEngine):
-    def __init__(self, map_file_dir, map_height=1024, map_width=1024):
-        super(GeoMapping, self).__init__(map_file_dir, map_height=map_height, map_width=map_width)
-
-        basemap = cv2.imread(map_file_dir, cv2.IMREAD_COLOR)
-        self.basemap = cv2.cvtColor(basemap, cv2.COLOR_BGR2RGB)
-        self.basemap = cv2.resize(self.basemap, (map_width, map_height))
-        self.basemap = (self.basemap.astype(np.float64) * 0.6).astype(np.uint8)
-
-        self.traj_alpha = np.zeros([self.h, self.w, 3], dtype=np.float32)
-
-        self.get_pixel_resolution()
-
-    def posi_to_pixel(self, posi, output_int=True):
-        pixel = self._world2pxl(posi, output_int=output_int)
-
-        return pixel
-
-
-    def get_pixel_resolution(self):
-        dx_meter, dy_meter = self.f.tl[0] - self.f.tr[0], self.f.tl[1] - self.f.tr[1]
-        d = np.linalg.norm([dx_meter, dy_meter])
-
-        self.x_pixel_per_meter = self.w / d
-
-        dx_meter, dy_meter = self.f.tl[0] - self.f.bl[0], self.f.tl[1] - self.f.bl[1]
-        d = np.linalg.norm([dx_meter, dy_meter])
-
-        self.y_pixel_per_meter = self.h / d
-
 def check_if_wrong_traj(scene_data):
     scene_tb_length = len(scene_data)
 
@@ -99,23 +69,6 @@ def check_if_wrong_traj(scene_data):
 
     return False
 
-def cal_gmm_var(mu, std, corr, pi):
-    sx, sy = std[:, 0], std[:, 1]
-
-    Sigma_k              = np.zeros((3, 2, 2))
-    Sigma_k[:, 0, 0]     = sx**2
-    Sigma_k[:, 1, 1]     = sy**2
-    Sigma_k[:, 0, 1]     = corr * sx * sy
-    Sigma_k[:, 1, 0]     = corr * sx * sy
-
-    outer_mu             = mu[:, :, None] * mu[:, None, :]
-    first_term           = (pi[:, None, None] * (Sigma_k + outer_mu)).sum(axis=0)
-
-    mu_mix               = (pi[:, None] * mu).sum(axis=0)       
-    Sigma_mix            = first_term - np.outer(mu_mix, mu_mix)
-
-    return Sigma_mix
-
 
 if __name__ == '__main__':
     # Load config file
@@ -149,9 +102,7 @@ if __name__ == '__main__':
     shutil.copyfile(args.config, save_path)
 
     # Initialize the simulation inference model.
-    #simulation_inference_model = SimulationInference(configs=configs)
-
-    geomap = GeoMapping(map_file_dir=configs["basemap_dir"], map_height=configs["map_height"], map_width=configs["map_width"])
+    simulation_inference_model = SimulationInference(configs=configs)
 
 
     dir_name = "rD_trial_2_4"
@@ -161,12 +112,6 @@ if __name__ == '__main__':
     print(len(scenes_all))
     num_load = 0
 
-    print(geomap.basemap.shape) # 963, 1678, 3
-    h_map = geomap.basemap.shape[0]
-    w_map = geomap.basemap.shape[1]
-
-    heat_matrix = np.zeros((h_map, w_map))
-    heat_matrix_2 = np.zeros((h_map, w_map))
 
     for scene in tqdm(scenes_all):
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
@@ -180,53 +125,7 @@ if __name__ == '__main__':
         
         num_load += 1
 
-        len_scene = len(scene_data)
-        # print(len_scene)
-
-        num_all = 0
-        for i in range(len_scene):
-            time_step = scene_data[i]
-            for car in time_step:
-
-                if not hasattr(car, 'std'):
-                    continue
-                
-                car_x = car.location.x
-                car_y = car.location.y
-
-                if car_x is None:
-                    continue
-
-                num_all += 1
-
-                std_car = car.std
-                corr_car = car.corr
-                pi_car = torch.tensor(car.pi)
-                pi_car = F.softmax(pi_car, dim=-1).cpu().numpy()
-                mean_car = car.mean_posi
-                
-                posi_at_map = geomap._world2pxl([car_x, car_y])
-
-                sigma_matrix = cal_gmm_var(mean_car, std_car, corr_car, pi_car)
-
-                var_x = sigma_matrix[0,0]
-                var_y = sigma_matrix[1,1]
-
-                heat_matrix[posi_at_map[1], posi_at_map[0]] += (var_x + var_y)
-                heat_matrix_2[posi_at_map[1], posi_at_map[0]] += np.sqrt(var_x + var_y)
+        simulation_inference_gmm.check_TIME_BUFF_metric(scene_data)
 
 
-    heat_matrix_all = {}
-    heat_matrix_all['heat_matrix'] = heat_matrix
-    heat_matrix_all['heat_matrix_2'] = heat_matrix_2
-    heat_matrix_all['num_load'] = num_load
-    heat_matrix_all['num_all'] = num_all
-
-    with open('/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/heat_matrices.pkl') as fb:
-        pickle.load(heat_matrix_all)
-    
-    # print(num_load, num_all)
-
-
-
-#python draw_std_distribution.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml
+#python cal_metric_gmm.py --experiment-name vis_2 --folder-idx 1 --config ./configs/rounD_inference.yml
