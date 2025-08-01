@@ -74,8 +74,8 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
 
-    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all/val/'
-    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single/val/'
+    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all_0730_4/train/'
+    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730_4/train/'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
         os.makedirs(save_dir_single)
 
     gen_num = 0
-    for i in tqdm(range(500)):
+    for i in tqdm(range(5000, 10000)):
         if_gen = simulation_inference_model.generate_prob_ignore_results(save_path_all=save_dir, save_path_single=save_dir_single, save_idx=i)
         gen_num += if_gen
 
@@ -122,16 +122,39 @@ if __name__ == '__main__':
 
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
-    # dir_name = "rD_b_seed_r4_2"
-    # save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_new/" + dir_name + "/1/"
-    # if not os.path.exists(save_sim_path):
-    #     os.makedirs(save_sim_path)
-    # coll_num = 0
-    # for idx in tqdm(range(10000)):
-    #     #print(f"----------------{idx}----------------")
-    #     coll = simulation_inference_model.check_crash_samples(max_time=1000, result_dir=save_sim_path, num_idx=idx)
-    #     coll_num += coll
-    # print(f"Find collision num: {coll_num}")
+
+    dir_name = "baseline_1_t2"
+    num_steps = 5
+    num_idx_list = [51,71]
+    for num_idx in range(100):
+        #num_idx = 26
+        if num_idx not in num_idx_list:
+            continue
+
+        save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/test/" + dir_name + f"/cases/{num_idx}/{num_steps}steps/"
+        if not os.path.exists(save_sim_path):
+            os.makedirs(save_sim_path)
+        coll_num = 0
+
+        file_path = f"/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/{num_idx}.pkl"
+        if not os.path.exists(file_path):
+            continue
+
+        data = pickle.load(open(file_path, 'rb'))
+        tb = data['states_all']
+
+        for idx in range(10):
+            #print(f"----------------{idx}----------------")
+            coll = simulation_inference_model.check_crash_distribute(max_time=100, result_dir=save_sim_path, num_idx=num_idx, num_try=idx, num_steps=num_steps,if_all=True, initial_TIME_BUFF=tb)
+            coll_num += coll
+        
+            # if coll_num >= 9:
+        print(num_idx, coll_num)
+            # print(coll_num)
+
+    print(f"Find collision num: {coll_num}")
+
+# python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
 
     #Get the visual of 1000 results
     # save_path_1 = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/2/"

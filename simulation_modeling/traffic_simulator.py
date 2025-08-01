@@ -180,7 +180,7 @@ class TrafficSimulator(object):
 
         # pred_lat, pred_lon = self.sampling(pred_lat_mean, pred_lon_mean, pred_lat_std, pred_lon_std)
 
-        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, np.mean(pred_lat_std), np.mean(pred_lon_std)
+        # return pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, buff_lat, buff_lon, pred_lat_std, pred_lon_std
 
 
     def do_safety_mapping(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, buff_vid, output_delta_position_mask=False):
@@ -230,7 +230,7 @@ class TrafficSimulator(object):
         # return pred_lat, pred_lon
 
 
-    def prediction_to_trajectory_rolling_horizon(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_vid, TIME_BUFF, rolling_step):
+    def prediction_to_trajectory_rolling_horizon(self, pred_lat, pred_lon, pred_cos_heading, pred_sin_heading, pred_std_x, pred_std_y, pred_vid, TIME_BUFF, rolling_step):
         """
         convert predicted tensor to trajectory pool.
         TIME_BUFF can be updated in a rolling horizon fashion (not all pred steps are used).
@@ -260,6 +260,7 @@ class TrafficSimulator(object):
                 v.location = Location(x=lat, y=lon)
                 v.id = str(int(id))
                 v.category = 0
+                v.std = None #[pred_std_x[vj, i_steps], pred_std_y[vj, i_steps]]
                 v.speed_heading = heading
                 v.size = self.v_modeling_size
                 v.safe_size = self.v_modeling_safe_size

@@ -4,6 +4,7 @@ import random
 import torch
 import torch.nn.functional as F
 import torch.distributions as distributions
+from torch.distributions import Categorical
 import copy
 from itertools import combinations
 import math
@@ -162,8 +163,11 @@ class TrafficSimulator_gmm(object):
 
         pred_L = np.stack([row1, row2], axis=-2)  
 
-        pred_pi = pi_all.argmax(-1)
-        pred_pi_one_hot = F.one_hot(pred_pi, num_classes=3).float()
+        pred_pi = F.softmax(pi_all, dim=-1)
+        # print(pred_pi)
+        comp_idx = Categorical(pred_pi).sample()
+        pred_pi_one_hot = F.one_hot(comp_idx, num_classes=3).float()
+        # pred_pi_one_hot = F.one_hot(pred_pi, num_classes=3).float()
         pred_pi_final = pred_pi_one_hot.detach().cpu().numpy()
 
         pred_posi = self.sampling(pred_mean_pos, pred_pi_final, pred_L)

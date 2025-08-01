@@ -1,8 +1,8 @@
 # Training dataset
 dataset: "rounD"
 path_to_traj_data: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18"  # Trajectory data for training
-path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single/train/"
-path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single/val/"
+path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730/train/"
+path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730/val/"
 
 # Model settings
 model: transformer  # transformer or bn_mlp
@@ -14,17 +14,18 @@ n_gaussian: 3
 single_ckpt_path: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_trial_2/checkpoints/ckpt_69.pt"
 
 # Training settings
-batch_size: 128
-lr: 1.0e-4 #5.0e-5  # learning rate
+p: 0.4
+batch_size: 64
+lr: 5.0e-4 #5.0e-5  # learning rate
 lr_decay_step_size: 200  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.3  # lr_scheduler.StepLR is used.
-warmup_steps: 200
+warmup_steps: 100
 max_num_epochs: 1600  # maximum training epochs
-epoch_mu: 500
-epoch_std: 1000
+epoch_mu: 700
+epoch_std: 1200
 dataloader_num_workers: 8  # num_workers
 sample_times: 10  # sample times for generating x_input
-epoch_thres: 1000  # when to add L1 loss
+epoch_thres: 4000  # when to add L1 loss
 lambda_H: 1.0e-5
 lambda_std: 1.0e-3
 lambda_corr: 1.0e-3

@@ -72,22 +72,22 @@ class Trainer_gmn(object):
         self.optimizer_D = optim.RMSprop(self.net_D.parameters(), lr=self.lr)
 
         # define lr schedulers
-        self.exp_lr_scheduler_G = lr_scheduler.StepLR(
-            self.optimizer_G, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
+        # self.exp_lr_scheduler_G = lr_scheduler.StepLR(
+        #     self.optimizer_G, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
         self.exp_lr_scheduler_D = lr_scheduler.StepLR(
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
 
-        # warmup_steps = self.warmup_steps
-        # total_steps = self.total_steps
-        # def lr_lambda(step):
-        #     if step < warmup_steps:
-        #         return step / warmup_steps
-        #     progress = (step - warmup_steps) / (total_steps - warmup_steps)
-        #     lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
-        #     return lr_cos  # eta_min=1e-3*lr
+        warmup_steps = self.warmup_steps
+        total_steps = self.total_steps
+        def lr_lambda(step):
+            if step < warmup_steps:
+                return step / warmup_steps
+            progress = (step - warmup_steps) / (total_steps - warmup_steps)
+            lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
+            return lr_cos  # eta_min=1e-3*lr
         
-        # self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
+        self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
 
         # define loss function and error metric
         self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_c')
@@ -1001,7 +1001,7 @@ class Trainer_gmn(object):
         # self._load_checkpoint_from_single_gaussian(ckpt_path=self.single_ckpt_path)
         # self._load_checkpoint(start_id=34)
 
-        self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net/rounD_nG3_trial_3_3/checkpoints/ckpt_799.pt")
+        self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0730/training/behavior_net/rounD_nG3_trial_3/checkpoints/ckpt_299.pt")
         
         # loop over the dataset multiple times
         for self.epoch_id in range(self.epoch_to_start, self.max_num_epochs):
@@ -1065,11 +1065,11 @@ class Trainer_gmn(object):
 
             ########### Update_Checkpoints ###########
             ##########################################
-            if (self.epoch_id + 1) <= 200:
-                if (self.epoch_id + 1) % 5 == 0:
-                    self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 500:
+            if (self.epoch_id + 1) <= 500:
                 if (self.epoch_id + 1) % 10 == 0:
+                    self._update_checkpoints(epoch_id=self.epoch_id)
+            elif (self.epoch_id + 1) <= 1000:
+                if (self.epoch_id + 1) % 30 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
             else:
                 if (self.epoch_id + 1) % 50 == 0:

@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import cv2
 import torch
+import torch.nn.functional as F
 import json
 import pandas as pd
 import time
@@ -16,6 +17,8 @@ from simulation_modeling.vehicle_generator import AA_rdbt_TrafficGenerator, roun
 from sim_evaluation_metric.realistic_metric import RealisticMetrics
 from itertools import combinations
 from basemap import Basemap
+from vehicle import Vehicle, Location, Size3d
+
 
 # Decide which device we want to run on
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -247,10 +250,10 @@ class SimulationInference_gmm(object):
             # Update, print, and save basic simulation results
             self.update_basic_sim_metric(sim_idx)
 
-    def check_TIME_BUFF_metric(self, TIME_BUFF, sim_idx):
+    def check_TIME_BUFF_metric(self, TIME_BUFF):
         # Generate and save simulation metrics
         if self.gen_realistic_metric_flag:
-            self.generate_simulation_metric(self.one_sim_TIME_BUFF)
+            self.generate_simulation_metric(TIME_BUFF)
             self.save_sim_metric()
             # print("Saving sim metrics!")
 
@@ -260,6 +263,7 @@ class SimulationInference_gmm(object):
 
     def _gen_sim_metric(self, one_sim_TIME_BUFF):
         # Construct traj dataframe
+
         self.SimMetricsAnalyzer.construct_traj_data(one_sim_TIME_BUFF)
 
         # PET analysis
@@ -747,7 +751,111 @@ class SimulationInference_gmm(object):
         with open(result_dir + f"{int(num_idx[0])}_{int(num_idx[1])}.pkl", "wb") as f:
             pickle.dump(Trajectory_info, f)
     
-    def check_crash_samples(self, max_time, result_dir, num_idx, if_all, initial_TIME_BUFF=None, save_not_coll=True):
+
+    def check_if_wrong_traj(self, scene_data):
+        scene_tb_length = len(scene_data)
+
+        vid_all = []
+        for i in range(scene_tb_length):
+            for j in range(len(scene_data[i])):
+                car_id = int(scene_data[i][j].id)
+                if car_id not in vid_all:
+                    vid_all.append(car_id)
+        vid_all = sorted(vid_all)
+
+        all_cars_posi = -np.ones((len(vid_all), scene_tb_length, 2))
+        for i in range(scene_tb_length):
+            for car in scene_data[i]:
+                car_id = int(car.id)
+                j = vid_all.index(car_id)
+                all_cars_posi[j, i, :] = np.array([car.location.x, car.location.y])
+
+        for i in range(len(vid_all)):
+            position = all_cars_posi[i]
+            heading = []
+            for j in range(1, len(position)):
+                if position[j][0] == -1 or position[j-1][0] == -1:
+                    continue
+                #heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
+                dis_car = np.sqrt((position[j][1] - position[j - 1][1])**2 + (position[j][0] - position[j - 1][0])**2)
+                heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j, dis_car])
+                if dis_car >= 12:
+                    return True
+            
+            if len(heading) < 2:
+                continue
+            for j in range(len(heading) - 1):
+                if abs(heading[j][0] - heading[j + 1][0]) < np.pi / 4 or abs(2 * np.pi - abs(heading[j][0] - heading[j + 1][0])) < np.pi / 4:
+                    continue
+                if heading[j][2] < 0.4 or heading[j+1][2] < 0.4:
+                    continue
+                
+                return True
+
+        return False
+    
+    
+    def check_crash_distribute(self, max_time, result_dir, num_idx, num_try, num_steps, if_all, initial_TIME_BUFF=None, save_not_coll=False):
+        #sample from history traj, then simulate for a long time until get a crash.
+        #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
+        #if find proper samples, save the whole traj.\
+
+        #TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF[-num_steps-4:-num_steps+1])
+        
+        TIME_BUFF = initial_TIME_BUFF[-num_steps-4:-num_steps+1]
+        traj_pool = self.sim.time_buff_to_traj_pool(TIME_BUFF)
+
+        TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
+        traj_pool_new = copy.deepcopy(traj_pool)
+        _, crash_pair_1 = self.sim.collision_check(initial_TIME_BUFF[-1:])
+
+        #print(crash_pair_1)
+
+        TIME_BUFF_all = copy.deepcopy(TIME_BUFF)
+
+        for i in range(max_time):
+            TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+
+            TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
+            # TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
+            traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
+
+
+            TIME_BUFF_all += TIME_BUFF_new[-1:]
+            #self.update_basic_stats_of_the_current_sim_episode(i, TIME_BUFF_new, pred_vid)
+            self.one_sim_colli_flag, crash_pair_2 = self.sim.collision_check(TIME_BUFF_all[-1:])
+
+
+            if self.one_sim_colli_flag:
+                # print('find crash:',crash_pair_2)
+                # infos = {}
+                # if if_all:
+                #     infos["states_all"] = TIME_BUFF_all
+                #     infos['orignal crash'] = crash_pair_1
+                #     infos['simulate crash'] = crash_pair_2
+                # with open(result_dir + f"{num_idx}_{num_try}.pkl", "wb") as f:
+                #     pickle.dump(infos, f)
+                if self.check_if_wrong_traj(TIME_BUFF_all):
+                    return -1
+                else:
+                    if crash_pair_1[0] == crash_pair_2[0] and crash_pair_1[1] == crash_pair_2[1]:
+                        return 1
+                    else:
+                        return 0
+
+            if len(TIME_BUFF_all[-1]) == 0:
+                break
+            
+        # infos = {}
+        # infos["states_all"] = TIME_BUFF_all
+        # with open(result_dir + f"{num_idx}_{num_try}.pkl", "wb") as f:
+        #     pickle.dump(infos, f)
+        if self.check_if_wrong_traj(TIME_BUFF_all):
+            return -1
+        else:
+            return 0
+    
+    def check_crash_samples(self, max_time, result_dir, num_idx, if_all, initial_TIME_BUFF=None, save_not_coll=False):
         #sample from history traj, then simulate for a long time until get a crash.
         #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
         #if find proper samples, save the whole traj.
@@ -760,9 +868,22 @@ class SimulationInference_gmm(object):
         for i in range(max_time):
             #TIME_BUFF_new, pred_vid, output_delta_position_mask, std_x, std_y, pred_corr = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
             TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+            
+            # for car in TIME_BUFF_new[-2]:
+            #     car_id = car.id
+            #     print(car_id)
+            #     print(car.location.x, car.location.y)
+
+            # for car in TIME_BUFF_new[-1]:
+            #     car_id = car.id
+            #     print(car_id)
+            #     print(car.mean_posi) # [3,2]
+            #     print(car.std)
+                
+            
             # return 0
             TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
-            TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
+            #TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
             traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
             self.one_sim_TIME_BUFF += TIME_BUFF_new[-self.rolling_step:]
             self.update_basic_stats_of_the_current_sim_episode(i, TIME_BUFF_new, pred_vid)
@@ -792,7 +913,7 @@ class SimulationInference_gmm(object):
                         final_idx = -1-k
                 #print(len(states_to_be_considered))
 
-                if len(states_to_be_considered) >= 7:
+                if len(states_to_be_considered) >= 2:
                     infos = {}
                     #infos["whole_inference_states"] = self.one_sim_TIME_BUFF
 
@@ -800,8 +921,9 @@ class SimulationInference_gmm(object):
                         infos["states_all"] = self.one_sim_TIME_BUFF
                     else:
                         infos["states_considered"] = states_to_be_considered[::-1]
-                        idx_before_start = np.max(len(self.one_sim_TIME_BUFF) + final_idx - 5, 0)
-                        infos["states_before"] = self.one_sim_TIME_BUFF[idx_before_start:final_idx] # to check all the states considered for 3-sigma
+                        infos["states_all"] = self.one_sim_TIME_BUFF
+                        # idx_before_start = np.max(len(self.one_sim_TIME_BUFF) + final_idx - 5, 0)
+                        # infos["states_before"] = self.one_sim_TIME_BUFF[idx_before_start:final_idx] # to check all the states considered for 3-sigma
                         infos['crash_step'] = i + 1
 
 
@@ -827,6 +949,140 @@ class SimulationInference_gmm(object):
         
         return 0
     
+    def check_samples_distribution(self, save_dir='', save_idx=0, initial_TIME_BUFF=None):
+        #sample from history traj, then simulate for a long time until get a crash.
+        #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
+        #if find proper samples, save the whole traj.
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+        TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
+        traj_pool_new = copy.deepcopy(traj_pool)
+
+        
+        TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+            
+        #     img = vis[:, :, ::-1]
+        # #     cv2.imwrite(save_path, img)  
+        TIME_BUFF_prob = []
+
+        for car in TIME_BUFF_new[-1]:
+            mean_posi = car.mean_posi
+            pi = F.softmax(car.pi).detach().cpu().numpy()
+            
+            for i in range(3):
+                car_new = copy.deepcopy()
+                car_new.location.x = mean_posi[i, 0]
+                car_new.location.y = mean_posi[i, 1]
+                car_new.pi = pi[i]
+
+                TIME_BUFF_prob.append(car_new)
+
+        for i in range(len(TIME_BUFF)):
+            vehicle_list = TIME_BUFF[i]
+            vis = self.background_map.render(vehicle_list, with_traj=True, linewidth=6)
+
+        vis = self.background_map.render(TIME_BUFF_prob, with_traj=True, linewidth=6)
+        img = vis[:, :, ::-1]
+
+        cv2.imwrite(save_dir + f'{save_idx}.png', img)
+
+
+    def check_samples_multi(self, save_dir='', save_idx=0, repeat_num=20, predict_time=20, initial_TIME_BUFF=None):
+        #sample from history traj, then simulate for a long time until get a crash.
+        #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
+        #if find proper samples, save the whole traj.
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+
+
+        for k in range(repeat_num):
+            TIME_BUFF_all = copy.deepcopy(TIME_BUFF)
+            TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
+            traj_pool_new = copy.deepcopy(traj_pool)
+
+            for i in range(predict_time):
+                TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+                TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
+                TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
+                traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
+
+                TIME_BUFF_all.append(TIME_BUFF_new[-1])
+                self.one_sim_colli_flag, crash_pair = self.sim.collision_check(TIME_BUFF_new[-1:])
+
+                if self.one_sim_colli_flag:
+                    break
+
+            with open(save_dir + f'{save_idx}_{k}.pkl', 'wb') as f1:
+                pickle.dump(TIME_BUFF_all, f1)
+                
+        return 0
+
+    def check_samples_multi_all_in_one(self, save_dir='', save_idx=0, repeat_num=20, predict_time=20, initial_TIME_BUFF=None):
+        #sample from history traj, then simulate for a long time until get a crash.
+        #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
+        #if find proper samples, save the whole traj.
+        TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+
+        TIME_BUFF_whole = []
+        TIME_BUFF_whole += TIME_BUFF
+
+        for i in range(predict_time):
+            TIME_BUFF_whole.append([])
+
+        # TIME_BUFF_whole.append([])
+        # TIME_BUFF_whole.append([])
+
+
+        vid_all = []
+        for i in range(len(TIME_BUFF)):
+            for j in range(len(TIME_BUFF[i])):
+                vid = int(TIME_BUFF[i][j].id)
+                if vid not in vid_all:
+                    vid_all.append(int(TIME_BUFF[i][j].id))
+        vid_all = sorted(vid_all)
+
+        
+        for k in range(repeat_num):
+            TIME_BUFF_all = copy.deepcopy(TIME_BUFF)
+            TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
+            traj_pool_new = copy.deepcopy(traj_pool)
+
+            for i in range(predict_time):
+                TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+                TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
+                TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
+                traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
+
+                TIME_BUFF_all.append(TIME_BUFF_new[-1])
+
+                # TIME_BUFF_tem = []
+                for car in TIME_BUFF_new[-1]:
+                    if int(car.id) in vid_all:
+                        TIME_BUFF_whole[i+5].append(car)
+
+                # TIME_BUFF_whole.append(TIME_BUFF_tem)
+
+                # TIME_BUFF_whole[i+5] += TIME_BUFF_new[-1]
+                self.one_sim_colli_flag, crash_pair = self.sim.collision_check(TIME_BUFF_new[-1:])
+
+                if self.one_sim_colli_flag:
+                    break
+                
+                # if i + 1 == int(predict_time/2):
+                #     TIME_BUFF_whole[-2] += TIME_BUFF_new[-1]
+
+                
+                # if i + 1 == predict_time:
+                #     TIME_BUFF_whole[-1] += TIME_BUFF_new[-1]
+
+        with open(save_dir + f'{save_idx}.pkl', 'wb') as f1:
+            pickle.dump(TIME_BUFF_whole, f1)
+        
+        return 0
+            
+        
+
+
+
+
     # def vis_TimeBuff_PoC(self, file_path, original_tb_dir, poc_dir, save_path):
         
     #     return
@@ -915,7 +1171,7 @@ class SimulationInference_gmm(object):
         collision_video_writer = cv2.VideoWriter(save_path + r'/{0}.mp4'.format(file_name), cv2.VideoWriter_fourcc(*'mp4v'), self.save_fps, (background_map.w, background_map.h))
         for i in range(len(visualize_TIME_BUFF)):
             vehicle_list = visualize_TIME_BUFF[i]
-            vis = background_map.render(vehicle_list=vehicle_list, id_list=vid_all, with_traj=with_traj, linewidth=5, color_vid_list=color_vid_list)
+            vis = background_map.render(vehicle_list=vehicle_list, with_traj=with_traj, linewidth=5, color_vid_list=color_vid_list)
             img = vis[:, :, ::-1]
             # img = cv2.resize(img, (768, int(768 * background_map.h / background_map.w)))  # resize when needed
             collision_video_writer.write(img)

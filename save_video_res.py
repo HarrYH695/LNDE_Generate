@@ -101,40 +101,61 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference_gmm(configs=configs)
 
-    dir_name = "rD_trial_2_4"
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/1_1/"
-    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/scene_videos_1_1/"
+    dir_name = "rD_trial_2"
+    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0730_2/" + dir_name + "/1_1/"
+    save_dir = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0730_2/" + dir_name + "/scene_videos_1_1/"
 
-    # file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data_ignore_new_all/train/'
+    # file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/'
+    # save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/video_1/'
+
+    file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/gmm_0726_t2/cases/54/6steps/'
+    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/gmm_0726_t2/cases/54/6steps_vis/'
+
+    # file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/cases/51/5steps/'
+    # save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/cases/51/5steps_vis/'
+
+    # file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0726_2/rD_trial_2_4/4_1/'
+    # save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0726_2/rD_trial_2_4/scene_video_4_1/'
+
+    number = 691
+    file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0726_2/rD_trial_2_4/bigangle/'
+    save_dir = file_ori + f'{number}_vis/'
+    file_ori += f'{number}/'
+
+
+    file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/gmm_0726_t2/cases/gmm/51_2/10steps/'
+    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/gmm_0726_t2/cases/gmm/51_2/10steps_vis/'
+    scenes_all = os.listdir(file_ori)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    scenes_all = os.listdir(file_ori)
-    print(len(scenes_all)) 
+    dir_name = "rD_baseline"
+    # dir_name = "rD_Trial_2"
+    dir_wrong_data_info = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/"
 
     num = 0
-    coll_all = []
-    for scene_i in tqdm(range(50)):
-        #scene = "7279.pkl"
-        scene = f'{scene_i}.pkl'
-        # if (scene_i + 1) % 10 != 0:
+    for scene_i in tqdm(scenes_all):
+        
+        
+        # scene_i = '24_1.pkl'
+        # if not os.path.exists(file_ori+scene_i):
         #     continue
-        if not os.path.exists(file_ori+scene):
-            continue
 
-        scene_data_file = pickle.load(open(file_ori+scene, "rb"))
-        scene_data = scene_data_file["states_considered"]
-        # collision_time = scene_data_file["crash_step"]
-        # scene_before = scene_data_file["states_before"]
-        # print(len(scene_before))
+        scene_data_file = pickle.load(open(file_ori+scene_i, "rb"))
+        scene_data = scene_data_file["states_all"]
 
+        # scene_data_file = pickle.load(open(dir_wrong_data_info+'9242.pkl', 'rb'))
+        # scene_data = scene_data_file['states_considered'][13:]
+        
         # if_wrong_traj = check_if_wrong_traj(scene_data_file)
 
-        if len(scene_data) > 6: #not if_wrong_traj:
+        if True: #not if_wrong_traj:
+            simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=num, save_path=save_dir, with_traj=True)
             num += 1
-            simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=scene[:-4], save_path=save_dir, with_traj=True)
             #coll_all.append(collision_time)
-        #break
+        # break
     print(f"video_num:{num}")
     #print(coll_all)
+    
+
 #python save_video_res.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

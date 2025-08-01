@@ -66,7 +66,7 @@ class MTLTrajectoryPredictionDataset(Dataset):
     def __getitem__(self, idx):
 
         if self.dataset == 'rounD' or self.dataset == 'AA_rdbt':
-            self.choice = np.random.binomial(n=1, p=0.3)
+            self.choice = np.random.binomial(n=1, p=0.4)
             if self.choice:
                 subfolder_id = random.choices(range(len(self.each_subfolder_size)), weights=self.subfolder_data_proportion)[0]
                 subsubfolder_id = random.choices(range(len(self.traj_dirs[subfolder_id])), weights=self.subsubfolder_data_proportion[subfolder_id])[0]

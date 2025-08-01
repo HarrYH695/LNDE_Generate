@@ -29,7 +29,12 @@ sample_times: 5
 
 # Checkpoints of the trained models (behavior modeling net, safety mapping net, etc.)
 behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net/rounD_nG3_trial_2_4/checkpoints/ckpt_1399.pt"
+# behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0730/training/behavior_net/rounD_nG3_trial_2/checkpoints/ckpt_899.pt"
+
 # behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_trial_2/checkpoints/ckpt_69.pt"
+
+
+# behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_baseline_1/checkpoints/ckpt_299.pt"
 safety_mapper_ckpt_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
 
 # Whether use neural safety mapping module
@@ -69,7 +74,7 @@ sim_remove_vehicle_area_map: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inferenc
 entrance_map_dir: &entrance_map_dir "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/ROIs-map/entrance"  # Only needed if want to use lane_based_safety_check for initialization.
 map_height: &map_height 936  # The map height and width ratio should be consistent with the basemap and drivable map pictures.
 map_width: &map_width 1678
-init_traj_clips_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/val"  # For initialization.
+init_traj_clips_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train"  # For initialization.
 traffic_generator_config:
   method: Poisson  # Poisson or Random
   gen_veh_states_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/simulation_initialization/gen_veh_states/rounD/"  # The states of generated vehicle at entrance during the simulation

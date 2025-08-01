@@ -1,5 +1,4 @@
 import torch
-import torch, torch.nn.functional as F
 import argparse
 import os
 import yaml
@@ -9,9 +8,7 @@ from tqdm import tqdm
 from simulation_modeling.simulation_inference_gmm import SimulationInference_gmm
 import pickle
 import numpy as np
-from geo_engine import GeoEngine
 import cv2
-
 
 # settings
 parser = argparse.ArgumentParser()
@@ -27,50 +24,51 @@ parser.add_argument('--viz-flag', action='store_true', help='Default is False, a
 
 args = parser.parse_args()
 
-def check_if_wrong_traj(scene_data):
-    scene_tb_length = len(scene_data)
-
-    vid_all = []
-    for i in range(scene_tb_length):
-        for j in range(len(scene_data[i])):
-            car_id = int(scene_data[i][j].id)
-            if car_id not in vid_all:
-                vid_all.append(car_id)
-    vid_all = sorted(vid_all)
-
-    all_cars_posi = -np.ones((len(vid_all), scene_tb_length, 2))
-    for i in range(scene_tb_length):
-        for car in scene_data[i]:
-            car_id = int(car.id)
-            j = vid_all.index(car_id)
-            all_cars_posi[j, i, :] = np.array([car.location.x, car.location.y])
-
-    for i in range(len(vid_all)):
-        position = all_cars_posi[i]
-        heading = []
-        for j in range(1, len(position)):
-            if position[j][0] == -1 or position[j-1][0] == -1:
-                continue
-            #heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
-            dis_car = np.sqrt((position[j][1] - position[j - 1][1])**2 + (position[j][0] - position[j - 1][0])**2)
-            heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j, dis_car])
-            if dis_car >= 10:
-                return True
-        
-        if len(heading) < 2:
-            continue
-        for j in range(len(heading) - 1):
-            if abs(heading[j][0] - heading[j + 1][0]) < np.pi / 4 or abs(2 * np.pi - abs(heading[j][0] - heading[j + 1][0])) < np.pi / 4:
-                continue
-            if heading[j][2] < 0.4 or heading[j+1][2] < 0.4:
-                continue
-            
-            return True
-
-    return False
-
 
 if __name__ == '__main__':
+    def check_if_wrong_traj(scene_data):
+        scene_tb_length = len(scene_data)
+
+        vid_all = []
+        for i in range(scene_tb_length):
+            for j in range(len(scene_data[i])):
+                car_id = int(scene_data[i][j].id)
+                if car_id not in vid_all:
+                    vid_all.append(car_id)
+        vid_all = sorted(vid_all)
+
+        all_cars_posi = -np.ones((len(vid_all), scene_tb_length, 2))
+        for i in range(scene_tb_length):
+            for car in scene_data[i]:
+                car_id = int(car.id)
+                j = vid_all.index(car_id)
+                all_cars_posi[j, i, :] = np.array([car.location.x, car.location.y])
+
+        for i in range(len(vid_all)):
+            position = all_cars_posi[i]
+            heading = []
+            for j in range(1, len(position)):
+                if position[j][0] == -1 or position[j-1][0] == -1:
+                    continue
+                #heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j])
+                dis_car = np.sqrt((position[j][1] - position[j - 1][1])**2 + (position[j][0] - position[j - 1][0])**2)
+                heading.append([np.arctan2(position[j][1] - position[j - 1][1], position[j][0] - position[j - 1][0]), j, dis_car])
+                if dis_car >= 10:
+                    return True
+            
+            if len(heading) < 2:
+                continue
+            for j in range(len(heading) - 1):
+                if abs(heading[j][0] - heading[j + 1][0]) < np.pi / 4 or abs(2 * np.pi - abs(heading[j][0] - heading[j + 1][0])) < np.pi / 4:
+                    continue
+                if heading[j][2] < 0.4 or heading[j+1][2] < 0.4:
+                    continue
+                
+                return True
+
+        return False
+
+    
     # Load config file
     with open(args.config) as file:
         try:
@@ -104,30 +102,8 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference_gmm(configs=configs)
 
+    basemap_gmm = SimulationInference_gmm.background_map
+    
+    vis = np.copy(basemap_gmm.basemap)
 
-    dir_name = "rD_trial_2_4"
-    file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/1_4/" 
-
-    scenes_all = os.listdir(file_ori)
-    print(len(scenes_all))
-    num_load = 0
-
-
-    for scene in tqdm(scenes_all):
-        scene_data_file = pickle.load(open(file_ori+scene, "rb"))
-        if 'states_all' in scene_data_file:
-            scene_data = scene_data_file["states_all"]
-        else:
-            scene_data = scene_data_file["states_considered"]
-
-        if check_if_wrong_traj(scene_data):
-            continue
-        
-        num_load += 1
-
-        simulation_inference_model.check_TIME_BUFF_metric(scene_data[:-1])
-
-        if num_load >= 10000:
-            break
-    print(num_load)
-# python cal_metric_gmm.py --experiment-name vis_4 --folder-idx 1 --config ./configs/rounD_inference.yml
+    cv2.fillPoly(vis, [np.array(pts)], color=[252, 0, 0], lineType=cv2.LINE_AA)

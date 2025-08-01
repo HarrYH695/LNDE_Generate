@@ -157,6 +157,9 @@ if __name__ == '__main__':
     dir_name = "rD_trial_2_4"
     file_ori = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0726_2/" + dir_name + "/1_4/" 
 
+    #file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/rD_baseline/1/'
+
+
     scenes_all = os.listdir(file_ori)
     print(len(scenes_all))
     num_load = 0
@@ -167,6 +170,7 @@ if __name__ == '__main__':
 
     heat_matrix = np.zeros((h_map, w_map))
     heat_matrix_2 = np.zeros((h_map, w_map))
+    heat_matrix_3 = np.zeros((h_map, w_map))
 
     for scene in tqdm(scenes_all):
         scene_data_file = pickle.load(open(file_ori+scene, "rb"))
@@ -204,8 +208,9 @@ if __name__ == '__main__':
                 pi_car = torch.tensor(car.pi)
                 pi_car = F.softmax(pi_car, dim=-1).cpu().numpy()
                 mean_car = car.mean_posi
-                
+
                 posi_at_map = geomap._world2pxl([car_x, car_y])
+                # print(posi_at_map)
 
                 sigma_matrix = cal_gmm_var(mean_car, std_car, corr_car, pi_car)
 
@@ -213,20 +218,23 @@ if __name__ == '__main__':
                 var_y = sigma_matrix[1,1]
 
                 heat_matrix[posi_at_map[1], posi_at_map[0]] += (var_x + var_y)
-                heat_matrix_2[posi_at_map[1], posi_at_map[0]] += np.sqrt(var_x + var_y)
+                # heat_matrix_2[posi_at_map[1], posi_at_map[0]] += np.sqrt(var_x + var_y)、
+                heat_matrix_3[posi_at_map[1], posi_at_map[0]] += 1
+
 
 
     heat_matrix_all = {}
     heat_matrix_all['heat_matrix'] = heat_matrix
     heat_matrix_all['heat_matrix_2'] = heat_matrix_2
+    heat_matrix_all['heat_matrix_3'] = heat_matrix_3
     heat_matrix_all['num_load'] = num_load
     heat_matrix_all['num_all'] = num_all
 
-    with open('/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/heat_matrices.pkl') as fb:
-        pickle.load(heat_matrix_all)
+    with open('/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/heat_matrices_2.pkl', 'wb') as fb:
+        pickle.dump(heat_matrix_all, fb)
     
-    # print(num_load, num_all)
+    print(num_load)
 
 
-
-#python draw_std_distribution.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml
+    
+# python draw_std_distribution.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml

@@ -4,6 +4,7 @@ import os
 from trajectory_pool import TrajectoryPool
 from geo_engine import GeoEngine
 from . import utils
+import torch.nn.functional as F
 
 def _draw_vehicle_as_point_with_meter(vis, ptc, color, x_pixel_per_meter, r_meter=1):
     r = int(r_meter * x_pixel_per_meter)
@@ -38,21 +39,28 @@ def _draw_trust_region(vis, pts, r, color):
 
 def _print_vehicle_info(vis, ptc, v, color, id_list):
 
-    # print latitude (x)
     pt = (ptc[0] + 15, ptc[1])
-    text = "%.6f" % v.location.x
+    text = "%.6f" % v.pi
     cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
-    # print longitude (y)
-    pt = (ptc[0] + 15, ptc[1] + 15)
-    text = "%.6f" % v.location.y
-    cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
-    # print v id
-    pt = (ptc[0] + 15, ptc[1]+30)
-    text = "%s" % str(id_list.index(int(v.id)))
-    cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+
+    # # print latitude (x)
+    # pt = (ptc[0] + 15, ptc[1])
+    # text = "%.6f" % v.location.x
+    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+    # # print longitude (y)
+    # pt = (ptc[0] + 15, ptc[1] + 15)
+    # text = "%.6f" % v.location.y
+    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
+
+
+    # # print v id
+    # pt = (ptc[0] + 15, ptc[1]+30)
+    # text = "%s" % str(id_list.index(int(v.id)))
+    # cv2.putText(vis, text=text, org=pt, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+    #             fontScale=0.5, color=color, thickness=1, lineType=cv2.LINE_AA)
 
 
 def _rotate_image(image, angle):
@@ -120,12 +128,13 @@ class Basemap(GeoEngine):
 
             ptc = self._world2pxl([v.location.x, v.location.y])
 
-            if v.realworld_4_vertices is None:
+            if v.realworld_4_vertices is None: #True: #
                 # box unavailiable, draw a circle instead
                 _draw_vehicle_as_point_with_meter(vis, ptc, color, x_pixel_per_meter=self.x_pixel_per_meter, r_meter=1)
             else:
                 # box availiable
                 pts = self._world2pxl(v.realworld_4_vertices)
+                
                 _draw_vehicle_as_box(vis, pts, color)
 
             if hasattr(v, 'predicted_future') and v.predicted_future is not None:
@@ -142,7 +151,8 @@ class Basemap(GeoEngine):
                 _draw_trust_region(vis, pts_mean, r, color)
 
             # print vehicle info beside box
-            _print_vehicle_info(vis, ptc, v, (255, 255, 0), self.id_list)
+            # if hasattr(v, 'pi') and v.pi is not None:
+            #     _print_vehicle_info(vis, ptc, v, (255, 255, 0), self.id_list)
 
         return vis
 
@@ -189,11 +199,11 @@ class Basemap(GeoEngine):
         vis = base_layer*(1-traj_alpha) + traj_layer*traj_alpha
         return vis
 
-    def render(self, vehicle_list, id_list, with_traj=True, linewidth=2, color_vid_list=None, rotate_deg=0.):
+    def render(self, vehicle_list, with_traj=True, linewidth=2, color_vid_list=None, rotate_deg=0.):
         """
         rotate_deg – Rotate the background map. Rotation angle in degrees. Positive values mean counter-clockwise rotation
         """
-        self.id_list = id_list
+        #self.id_list = id_list
         base_layer = self.draw_location(vehicle_list, color_vid_list, rotate_deg=rotate_deg)
         if with_traj:
             traj_layer, traj_alpha = self.draw_trajectory(vehicle_list, linewidth, color_vid_list)
@@ -203,6 +213,8 @@ class Basemap(GeoEngine):
             map_vis = base_layer
 
         return map_vis
+
+
 
     def draw_location_vis_grad(self, vehicle_list, current_t_idx=None, ego_vid=None, grad_res={}, color_vid_list=None):
 
