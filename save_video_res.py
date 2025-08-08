@@ -125,6 +125,9 @@ if __name__ == '__main__':
 
     file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/gmm_0726_t2/cases/gmm/51_2/10steps/'
     save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/gmm_0726_t2/cases/gmm/51_2/10steps_vis/'
+
+    file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_all_0805/train/'
+    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_all_0805/train_vis/'
     scenes_all = os.listdir(file_ori)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -133,27 +136,35 @@ if __name__ == '__main__':
     # dir_name = "rD_Trial_2"
     dir_wrong_data_info = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/"
 
+
+
     num = 0
     for scene_i in tqdm(scenes_all):
-        
         
         # scene_i = '24_1.pkl'
         # if not os.path.exists(file_ori+scene_i):
         #     continue
-
+        scene_i = '462.pkl'
         scene_data_file = pickle.load(open(file_ori+scene_i, "rb"))
-        scene_data = scene_data_file["states_all"]
+
+        for cars in scene_data_file:
+            print([car.id for car in cars])
+        break
+        # scene_data = scene_data_file["states_all"]
 
         # scene_data_file = pickle.load(open(dir_wrong_data_info+'9242.pkl', 'rb'))
         # scene_data = scene_data_file['states_considered'][13:]
         
         # if_wrong_traj = check_if_wrong_traj(scene_data_file)
 
-        if True: #not if_wrong_traj:
-            simulation_inference_model.save_check_sample_result(time_buff=scene_data, idx=num, save_path=save_dir, with_traj=True)
-            num += 1
+        # if True: #not if_wrong_traj:
+        #     simulation_inference_model.save_check_sample_result(time_buff=scene_data_file, idx=scene_i[:-4], save_path=save_dir, with_traj=True)
+        #     num += 1
             #coll_all.append(collision_time)
         # break
+
+        # if num >= 100:
+        #     break
     print(f"video_num:{num}")
     #print(coll_all)
     

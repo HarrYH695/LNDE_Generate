@@ -15,12 +15,13 @@ from behavior_net import Trainer_gmn
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
-parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0731/training/behavior_net',
+# parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0731/training/behavior_net',
+#                     help='The path to save the training results, a folder with experiment_name will be created in the path')
+parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0807/training/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs/AA_rdbt_behavior_net_training.yml')
 args = parser.parse_args()
-
 
 def check_data_loading():
     # to check if the data is loading correctly?
@@ -99,11 +100,10 @@ if __name__ == '__main__':
     # seed = 2025
     # set_seed(seed)
 
-    # dump_rng_states(os.path.join(save_result_path, experiment_name))
+    dump_rng_states(os.path.join(save_result_path, experiment_name))
 
-    seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0730/training/behavior_net/rounD_nG3_trial_3/seeds.pkl"
-    load_rng_states(seed_file)
-
+    # seed_file = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0805/training/behavior_net/rounD_nG3_t4/seeds.pkl"
+    # load_rng_states(seed_file)
 
     # Initialize the DataLoader
     dataloaders = datasets.get_loaders(configs)
@@ -116,4 +116,4 @@ if __name__ == '__main__':
     m.train_models()
 
 # 别忘了改seed！！！！！
-# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_trial_1
+# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_t3

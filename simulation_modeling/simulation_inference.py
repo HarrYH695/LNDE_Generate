@@ -1066,7 +1066,7 @@ class SimulationInference(object):
             with open(os.path.join(save_path_all, f'{save_idx}.pkl'), 'wb') as fb:
                 pickle.dump(TIME_BUFF_all, fb)
 
-            for i in range(len(TIME_BUFF_all) - 6):
+            for i in range(len(TIME_BUFF_all) - 5):
                 with open(os.path.join(save_path_single, f'{save_idx}_{i}.pkl'), 'wb') as fb2:
                     pickle.dump(TIME_BUFF_all[i:i+6], fb2)
 

@@ -259,6 +259,7 @@ class Network_G(nn.Module):
         super().__init__()
 
         h_dim = 256
+        
         self.tem_softmax = 1.3
 
         # define input positional mapping
@@ -284,7 +285,9 @@ class Network_G(nn.Module):
         self.P = nn.ModuleList([PredictionsHeads(h_dim=h_dim, output_dim=output_dim) for _ in range(n_gaussian)])
 
         self.out_net_cos_sin_heading = nn.Linear(in_features=h_dim, out_features=int(output_dim/2), bias=True)
-        self.out_pi = nn.Linear(in_features=h_dim, out_features=n_gaussian, bias=True)
+        # self.out_pi = nn.Linear(in_features=h_dim, out_features=n_gaussian, bias=True)
+        self.out_pi = nn.Sequential(nn.Linear(h_dim, int(h_dim/2), bias=True), nn.LeakyReLU(0.01, inplace=True), nn.Linear(int(h_dim/2), n_gaussian, bias=True))
+
         self.softmax = torch.nn.Softmax(dim=-1)
         # self.if_mean_grad = True
         # self.if_std_grad=True

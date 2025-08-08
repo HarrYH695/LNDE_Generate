@@ -5,7 +5,7 @@ import json
 import random
 import math
 import pickle
-
+import time
 import torch
 import torch.optim as optim
 from torch.optim import lr_scheduler
@@ -21,6 +21,23 @@ from . import utils
 # Decide which device we want to run on
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+
+def build_warmup_cosine_scheduler(optimizer, total_steps, warmup_steps, base_lr, global_step= 0, eta_min=None):
+
+    if eta_min is None:
+        eta_min = base_lr * 1e-3
+    warmup = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=1e-6, end_factor=1.0, total_iters=warmup_steps
+    )
+    cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=max(1, total_steps - warmup_steps), eta_min=eta_min
+    )
+    sched = torch.optim.lr_scheduler.SequentialLR(
+        optimizer, schedulers=[warmup, cosine], milestones=[warmup_steps]
+    )
+    
+    sched.last_epoch = max(-1, global_step - 1)  
+    return sched
 
 class Trainer_gmn(object):
     """
@@ -67,6 +84,10 @@ class Trainer_gmn(object):
         self.branch_1 = np.zeros(2)
         self.branch_2 = np.zeros(2)
 
+        self.global_step = 0
+        self.total_batch_steps = 0
+        self.warmup_batch_steps = 0
+
         # define optimizers
         self.optimizer_G = optim.AdamW(self.net_G.parameters(), lr=self.lr, betas=(0.9,0.999), weight_decay=1e-4,  eps=1e-8)
         self.optimizer_D = optim.RMSprop(self.net_D.parameters(), lr=self.lr)
@@ -78,16 +99,19 @@ class Trainer_gmn(object):
             self.optimizer_D, step_size=configs["lr_decay_step_size"], gamma=configs["lr_decay_gamma"])
 
 
-        warmup_steps = self.warmup_steps
-        total_steps = self.total_steps
-        def lr_lambda(step):
-            if step < warmup_steps:
-                return step / warmup_steps
-            progress = (step - warmup_steps) / (total_steps - warmup_steps)
-            lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
-            return lr_cos  # eta_min=1e-3*lr
+        # warmup_steps = self.warmup_steps
+        # total_steps = self.total_steps
+        # print(warmup_steps, total_steps)
+        # def lr_lambda(step):
+        #     if step < warmup_steps:
+        #         return step / warmup_steps
+        #     progress = (step - warmup_steps) / (total_steps - warmup_steps)
+        #     progress = max(0.0, min(1.0, float(progress)))
+        #     lr_cos = 0.001 + 0.999 * 0.5 * (1 + math.cos(torch.pi * progress))
+        #     return lr_cos  # eta_min=1e-3*lr
         
-        self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
+        # self.exp_lr_scheduler_G =  torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda)
+
 
         # define loss function and error metric
         self.regression_loss_func_pos = UncertaintyRegressionLoss(choice='mae_c')
@@ -195,6 +219,11 @@ class Trainer_gmn(object):
         
         self.epoch_to_start = checkpoint['epoch_id'] + 1
 
+        self.global_step = checkpoint['meta_details'][0]
+        self.total_batch_steps = checkpoint['meta_details'][1]
+        self.warmup_batch_steps = checkpoint['meta_details'][2]
+        self.lr = checkpoint['meta_details'][3]
+
         print('Checkpoint(certain) Loaded.')
 
 
@@ -243,8 +272,17 @@ class Trainer_gmn(object):
         #     print(name)
 
 
-        
     def _save_checkpoint(self, ckpt_name):
+        # torch.save({
+        #     'epoch_id': self.epoch_id,
+        #     'model_G_state_dict': self.net_G.state_dict(),
+        #     'optimizer_G_state_dict': self.optimizer_G.state_dict(),
+        #     'exp_lr_scheduler_G_state_dict': self.exp_lr_scheduler_G.state_dict(),
+        #     'model_D_state_dict': self.net_D.state_dict(),
+        #     'optimizer_D_state_dict': self.optimizer_D.state_dict(),
+        #     'exp_lr_scheduler_D_state_dict': self.exp_lr_scheduler_D.state_dict()
+        # }, os.path.join(self.checkpoint_dir, ckpt_name))
+
         torch.save({
             'epoch_id': self.epoch_id,
             'model_G_state_dict': self.net_G.state_dict(),
@@ -252,11 +290,12 @@ class Trainer_gmn(object):
             'exp_lr_scheduler_G_state_dict': self.exp_lr_scheduler_G.state_dict(),
             'model_D_state_dict': self.net_D.state_dict(),
             'optimizer_D_state_dict': self.optimizer_D.state_dict(),
-            'exp_lr_scheduler_D_state_dict': self.exp_lr_scheduler_D.state_dict()
+            'exp_lr_scheduler_D_state_dict': self.exp_lr_scheduler_D.state_dict(),
+            'meta_details': [self.global_step, self.total_batch_steps, self.warmup_batch_steps, self.lr]
         }, os.path.join(self.checkpoint_dir, ckpt_name))
 
     def _update_lr_schedulers(self):
-        self.exp_lr_scheduler_G.step()
+        self.exp_lr_scheduler_G.step(self.epoch_id)
         #self.exp_lr_scheduler_D.step()
 
     def _collect_running_batch_states(self):
@@ -515,8 +554,8 @@ class Trainer_gmn(object):
     def _forward_pass(self, batch, rollout=5):
 
         self.batch = batch
-        self.x = batch['input'].to(device)
-        self.gt = self.batch['gt'].to(device)
+        self.x = batch['input'].to(device, non_blocking=True)
+        self.gt = self.batch['gt'].to(device, non_blocking=True)
 
         self.mask = torch.ones_like(self.gt)
         self.mask[torch.isnan(self.gt)] = 0.0
@@ -640,22 +679,6 @@ class Trainer_gmn(object):
                 self.branch_1[0] += (branch_choice == 1).sum().item()
                 self.branch_2[0] += (branch_choice == 2).sum().item()
                 
-                # 1.
-                # heat map : random choose some start point and do simulation for a while for each start point. 
-                # [gmm variance] 
-
-                # 2. realistic.
-                # 4 maps --- 
-
-                # 3. crash rate high --> dangerous    --- case study
-
-
-                # TRB results
-                # alignment work
-                # alignment visualization ---> image series include 3 lights 
-                # cost when t=0 & t=t*
-
-                # Abormal detection 
 
             elif self.epoch_id <= self.epoch_std:
                 mu, std, corr, cos_sin_heading, pi_all = self.net_G(x_input, if_transformer=False, if_heading=False, if_mean_grad=False, if_std_grad=True, if_corr_grad=True, if_pi_grad=False)
@@ -688,7 +711,6 @@ class Trainer_gmn(object):
                 posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
                 posi = (one_hot_idx.unsqueeze(-1) * posi).sum(dim=2)
                 
-
                 x_pred = torch.cat([posi, cos_sin_heading], dim=-1)
                 x_pred = x_pred * self.rollout_mask  # For future rollouts
 
@@ -918,7 +940,7 @@ class Trainer_gmn(object):
             self.batch_mean_pi.append(np.mean(pi_pred_i))
 
     
-    def _compute_loss_G(self, epoch_threshold=50):
+    def _compute_loss_G(self, epoch_threshold=10000):
         if (self.epoch_id + 1) < epoch_threshold:
             self.batch_loss_G = self.loss_nll
         else: 
@@ -998,11 +1020,18 @@ class Trainer_gmn(object):
         In each minibatch, we perform gradient descent on the network parameters.
         """
 
-        # self._load_checkpoint_from_single_gaussian(ckpt_path=self.single_ckpt_path)
+        self._load_checkpoint_from_single_gaussian(ckpt_path=self.single_ckpt_path)
         # self._load_checkpoint(start_id=34)
 
-        self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0730/training/behavior_net/rounD_nG3_trial_3/checkpoints/ckpt_299.pt")
+        # self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0805/training/behavior_net/rounD_nG3_t4/checkpoints/ckpt_59.pt")
         
+        self.total_batch_steps = self.total_steps * len(self.dataloaders['train'])
+        self.warmup_batch_steps = int(self.total_batch_steps * 0.03)
+        print(self.total_batch_steps, self.warmup_batch_steps, self.global_step)
+
+        self.exp_lr_scheduler_G = build_warmup_cosine_scheduler(self.optimizer_G, total_steps=self.total_batch_steps, warmup_steps=self.warmup_batch_steps, base_lr=self.lr, global_step=self.global_step)
+
+
         # loop over the dataset multiple times
         for self.epoch_id in range(self.epoch_to_start, self.max_num_epochs):
             # ################## train #################
@@ -1011,9 +1040,12 @@ class Trainer_gmn(object):
             self.is_training = True
             self.net_G.train()  # Set model to training mode
             # Iterate over data.
+            print(self.epoch_id, self.exp_lr_scheduler_G.last_epoch, self.optimizer_G.param_groups[0]["lr"])
 
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
+                # print(1)
                 self._forward_pass(batch, rollout=1)
+                # print(2)
 
                 #record branch
 
@@ -1029,19 +1061,24 @@ class Trainer_gmn(object):
                 # self.optimizer_D.step()
                 
                 # update G
+                # print(3)
                 set_requires_grad(self.net_D, False)
                 self.optimizer_G.zero_grad()
                 self._compute_loss_G(epoch_threshold=self.epoch_thres)
                 self._backward_G()
                 self.optimizer_G.step()
+                
+                self.exp_lr_scheduler_G.step()
+                self.global_step += 1
 
+                # print(4)
 
                 # evaluate acc
                 self._compute_acc()
 
                 self._collect_running_batch_states()
                 #self._update_logfile_batch_train()
-                
+                # print(5)
                 # if self.batch_id == 6:
                 #     break
             self._collect_epoch_states()
@@ -1057,7 +1094,7 @@ class Trainer_gmn(object):
             for self.batch_id, batch in enumerate(self.dataloaders['val'], 0):
                 with torch.no_grad():
                     self._forward_pass(batch, rollout=1)
-                    self._compute_loss_G()
+                    self._compute_loss_G(epoch_threshold=self.epoch_thres)
                     #self._compute_loss_D()
                     self._compute_acc()
                 self._collect_running_batch_states()
@@ -1066,10 +1103,10 @@ class Trainer_gmn(object):
             ########### Update_Checkpoints ###########
             ##########################################
             if (self.epoch_id + 1) <= 500:
-                if (self.epoch_id + 1) % 10 == 0:
+                if (self.epoch_id + 1) % 20 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 1000:
-                if (self.epoch_id + 1) % 30 == 0:
+            elif (self.epoch_id + 1) <= 900:
+                if (self.epoch_id + 1) % 40 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
             else:
                 if (self.epoch_id + 1) % 50 == 0:
@@ -1077,7 +1114,7 @@ class Trainer_gmn(object):
 
             ########### Update_LR Scheduler ##########
             ##########################################
-            self._update_lr_schedulers() #注意加上D之后这里要改！！！
+            # self._update_lr_schedulers() #注意加上D之后这里要改！！！
 
             ############## Update logfile ############
             ##########################################

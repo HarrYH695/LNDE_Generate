@@ -15,23 +15,55 @@ if __name__ == '__main__':
 
     # print(data)
 
-    # dataset_file = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train/'
-    # sub_dir = os.listdir(dataset_file)
+    dataset_file = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train/'
+    sub_dir = os.listdir(dataset_file)
 
-    # num_all = 0
+    num_all = 0
 
-    # for sub in sub_dir:
-    #     subsub_dir = os.listdir(os.path.join(dataset_file, sub))
-    #     for subsub in subsub_dir:
-    #         files = os.listdir(os.path.join(dataset_file, sub, subsub))
-    #         num_all += len(files)
+    for sub in sub_dir:
+        subsub_dir = os.listdir(os.path.join(dataset_file, sub))
+        for subsub in subsub_dir:
+            files = os.listdir(os.path.join(dataset_file, sub, subsub))
+            num_all += len(files)
 
-    # print(num_all)
+    print(num_all)
 
     # vehicle_list = pickle.load(open('/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train/rounD-17/08/00011311.pickle', "rb"))
     # print(vehicle_list)
 
-    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data_ignore_new_single_0730/train/'
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805_2/train/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805/train/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805/train_2/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+
+
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805/val/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+    dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805_2/train/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+    dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/train/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+    dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/train_2/'
+    files = os.listdir(dir_path)
+    print(len(files))
+
+    dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/val/'
     files = os.listdir(dir_path)
     print(len(files))
 

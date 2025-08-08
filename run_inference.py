@@ -74,9 +74,12 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference(configs=configs)
 
-    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all_0730_4/train/'
-    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730_4/train/'
-    
+    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all_0730_4/val/'
+    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730_4/val/'
+
+    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_all_0805/val/'
+    save_dir_single = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805/val/'
+
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -84,12 +87,16 @@ if __name__ == '__main__':
         os.makedirs(save_dir_single)
 
     gen_num = 0
-    for i in tqdm(range(5000, 10000)):
+    for i in tqdm(range(150, 200)):
         if_gen = simulation_inference_model.generate_prob_ignore_results(save_path_all=save_dir, save_path_single=save_dir_single, save_idx=i)
         gen_num += if_gen
 
     print(gen_num)
     
+
+# python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
+
+
     #test!
     #file_t = "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Results/Trial_6/2/"
     # with open("/home/hanhy/ondemand/data/sys/myjobs/Conflict_Identifier_Network/wrong_case_2.txt", "r") as f:
@@ -123,36 +130,36 @@ if __name__ == '__main__':
     # Run simulations.
     #simulation_inference_model.run_simulations(sim_num=configs["sim_num"])
 
-    dir_name = "baseline_1_t2"
-    num_steps = 5
-    num_idx_list = [51,71]
-    for num_idx in range(100):
-        #num_idx = 26
-        if num_idx not in num_idx_list:
-            continue
+    # dir_name = "baseline_1_t2"
+    # num_steps = 5
+    # num_idx_list = [51,71]
+    # for num_idx in range(100):
+    #     #num_idx = 26
+    #     if num_idx not in num_idx_list:
+    #         continue
 
-        save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/test/" + dir_name + f"/cases/{num_idx}/{num_steps}steps/"
-        if not os.path.exists(save_sim_path):
-            os.makedirs(save_sim_path)
-        coll_num = 0
+    #     save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/test/" + dir_name + f"/cases/{num_idx}/{num_steps}steps/"
+    #     if not os.path.exists(save_sim_path):
+    #         os.makedirs(save_sim_path)
+    #     coll_num = 0
 
-        file_path = f"/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/{num_idx}.pkl"
-        if not os.path.exists(file_path):
-            continue
+    #     file_path = f"/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/{num_idx}.pkl"
+    #     if not os.path.exists(file_path):
+    #         continue
 
-        data = pickle.load(open(file_path, 'rb'))
-        tb = data['states_all']
+    #     data = pickle.load(open(file_path, 'rb'))
+    #     tb = data['states_all']
 
-        for idx in range(10):
-            #print(f"----------------{idx}----------------")
-            coll = simulation_inference_model.check_crash_distribute(max_time=100, result_dir=save_sim_path, num_idx=num_idx, num_try=idx, num_steps=num_steps,if_all=True, initial_TIME_BUFF=tb)
-            coll_num += coll
+    #     for idx in range(10):
+    #         #print(f"----------------{idx}----------------")
+    #         coll = simulation_inference_model.check_crash_distribute(max_time=100, result_dir=save_sim_path, num_idx=num_idx, num_try=idx, num_steps=num_steps,if_all=True, initial_TIME_BUFF=tb)
+    #         coll_num += coll
         
-            # if coll_num >= 9:
-        print(num_idx, coll_num)
-            # print(coll_num)
+    #         # if coll_num >= 9:
+    #     print(num_idx, coll_num)
+    #         # print(coll_num)
 
-    print(f"Find collision num: {coll_num}")
+    # print(f"Find collision num: {coll_num}")
 
 # python run_inference.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
 
