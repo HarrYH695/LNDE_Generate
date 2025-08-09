@@ -17,7 +17,7 @@ parser.add_argument('--experiment-name', type=str, required=True,
                     help='The name of the experiment folder where the data will be stored')
 # parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0731/training/behavior_net',
 #                     help='The path to save the training results, a folder with experiment_name will be created in the path')
-parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0807/training/behavior_net',
+parser.add_argument('--save-result-path', type=str, default=r'/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net',
                     help='The path to save the training results, a folder with experiment_name will be created in the path')
 parser.add_argument('--config', type=str, required=True,
                     help='The path to the training config file. E.g., ./configs/AA_rdbt_behavior_net_training.yml')
@@ -116,4 +116,4 @@ if __name__ == '__main__':
     m.train_models()
 
 # 别忘了改seed！！！！！
-# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_t3
+# python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_t8

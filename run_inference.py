@@ -77,8 +77,8 @@ if __name__ == '__main__':
     save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all_0730_4/val/'
     save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730_4/val/'
 
-    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_all_0805/val/'
-    save_dir_single = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805/val/'
+    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data//Data_Gen/data_ignore_new_all_0809/val/'
+    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/val/'
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         os.makedirs(save_dir_single)
 
     gen_num = 0
-    for i in tqdm(range(150, 200)):
+    for i in tqdm(range(150)):
         if_gen = simulation_inference_model.generate_prob_ignore_results(save_path_all=save_dir, save_path_single=save_dir_single, save_idx=i)
         gen_num += if_gen
 

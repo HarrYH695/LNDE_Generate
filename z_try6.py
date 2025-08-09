@@ -4,21 +4,24 @@ import os
 import pickle
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+import random
+import math
 
 if __name__=="__main__":
-    # path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_all_0805/train/'
-    # path_2 = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/Data_Gen/data_ignore_new_single_0805/train_2/'
-    # files = os.listdir(path)
+    path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_all_0805/train/'
+    path_2 = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/train_part_p60/'
+    files = os.listdir(path)
 
-    # os.makedirs(path_2, exist_ok=True)
+    os.makedirs(path_2, exist_ok=True)
 
-    # for file in tqdm(files):
-    #     data = pickle.load(open(path + file, 'rb'))
+    len_origin = math.floor(len(files) * 0.6)
+    new_files = random.sample(files, len_origin)
 
-    #     for i in range(len(data) - 5):
-    #         with open(path_2 + file[:-4] + f'_{i}.pkl', 'wb') as f1:
-    #             pickle.dump(data[i:i+6], f1)
+    for file in tqdm(new_files):
+        data = pickle.load(open(path + file, 'rb'))
 
-    # print(len(os.listdir(path)))
+        for i in range(len(data) - 6):
+            with open(path_2 + file[:-4] + f'_{i}.pkl', 'wb') as f1:
+                pickle.dump(data[i:i+6], f1)
 
-    print(min(1, 0))
+    print(len(os.listdir(path_2)))

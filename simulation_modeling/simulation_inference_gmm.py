@@ -1079,7 +1079,39 @@ class SimulationInference_gmm(object):
         return 0
             
         
+    def check_from_same_startpoint(self, save_dir='', save_idx=0, repeat_num=30, predict_time=100, initial_TIME_BUFF=None):
+        #sample from history traj, then simulate for a long time until get a crash.
+        #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
+        #if find proper samples, save the whole traj.
+        while True:
+            TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
+            if len(TIME_BUFF[-1]) >= 8 and len(TIME_BUFF[-2]) >= 8:
+                break
 
+        for k in range(repeat_num):
+            TIME_BUFF_all = copy.deepcopy(TIME_BUFF)
+            TIME_BUFF_new = copy.deepcopy(TIME_BUFF)
+            traj_pool_new = copy.deepcopy(traj_pool)
+
+            for i in range(predict_time):
+                TIME_BUFF_new, pred_vid, output_delta_position_mask = self.run_one_sim_step(traj_pool=traj_pool_new, TIME_BUFF=TIME_BUFF_new)
+                TIME_BUFF_new = self.sim.remove_out_of_bound_vehicles(TIME_BUFF_new, self.dataset)
+                # TIME_BUFF_new = self.traffic_generator.generate_veh_at_source_pos(TIME_BUFF_new)  # Generate entering vehicles at source points.
+                traj_pool_new = self.sim.time_buff_to_traj_pool(TIME_BUFF_new)
+
+                TIME_BUFF_all.append(TIME_BUFF_new[-1])
+                self.one_sim_colli_flag, crash_pair = self.sim.collision_check(TIME_BUFF_new[-1:])
+
+                if self.one_sim_colli_flag:
+                    break
+
+                if len(TIME_BUFF_all[-1]) == 0:
+                    break
+
+            with open(save_dir + f'{save_idx}_{k}.pkl', 'wb') as f1:
+                pickle.dump(TIME_BUFF_all, f1)
+                
+        return 0
 
 
 

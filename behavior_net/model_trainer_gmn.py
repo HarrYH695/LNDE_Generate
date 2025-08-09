@@ -1103,10 +1103,10 @@ class Trainer_gmn(object):
             ########### Update_Checkpoints ###########
             ##########################################
             if (self.epoch_id + 1) <= 500:
-                if (self.epoch_id + 1) % 20 == 0:
+                if (self.epoch_id + 1) % 30 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 900:
-                if (self.epoch_id + 1) % 40 == 0:
+            elif (self.epoch_id + 1) <= 650:
+                if (self.epoch_id + 1) % 5 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
             else:
                 if (self.epoch_id + 1) % 50 == 0:

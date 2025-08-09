@@ -74,6 +74,22 @@ if __name__ == '__main__':
     # Initialize the simulation inference model.
     simulation_inference_model = SimulationInference_gmm(configs=configs)
     
+    # same init, try to generate different results
+
+    dir_name = '/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0807/t6/1/'
+
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+
+    for i in tqdm(range(30)):
+        simulation_inference_model.check_from_same_startpoint(save_dir=dir_name, save_idx=i)
+
+    
+# python run_inference_gmm.py --experiment-name vis_1 --folder-idx 4 --config ./configs/rounD_inference.yml --viz-flag
+
+
+
+
     #test and gen ignore data
     # save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_gmm_b3_val/'
     # if not os.path.exists(save_dir):
@@ -241,14 +257,14 @@ if __name__ == '__main__':
                         
     #                     simulation_inference_model._save_vis_time_buff(TIME_BUFF=time_buff_all[win_start:(win_start+5)], background_map=simulation_inference_model.background_map, save_path=dir_path+"vis.png")
 
-    dir_name = "gmm_0726_t2"
-    # num_idx = 26
-    # num_steps = 4
-    num_idx_list = [24, 43, 59, 64, 65, 72, 86, 87] #[11, 51, 54, 71] # [24, 43, 59, 64, 65, 72, 86, 87] 
+    # dir_name = "gmm_0726_t2"
+    # # num_idx = 26
+    # # num_steps = 4
+    # num_idx_list = [24, 43, 59, 64, 65, 72, 86, 87] #[11, 51, 54, 71] # [24, 43, 59, 64, 65, 72, 86, 87] 
 
-    coll_rate_dir = {}
-    for num_idx in num_idx_list:
-        coll_rate_dir[f'{num_idx}'] = []
+    # coll_rate_dir = {}
+    # for num_idx in num_idx_list:
+    #     coll_rate_dir[f'{num_idx}'] = []
     
     # for num_idx in num_idx_list:
     #     file_path = f"/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/{num_idx}.pkl"
@@ -257,43 +273,43 @@ if __name__ == '__main__':
     #     tb = data['states_all']
     #     print(len(tb))
 
-    for num_steps in tqdm(range(3, 14)):
+    # for num_steps in tqdm(range(3, 14)):
     
-        for num_idx in num_idx_list:
-            save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/test/" + dir_name + f"/cases/gmm/{num_idx}_2/{num_steps}steps/"
-            if not os.path.exists(save_sim_path):
-                os.makedirs(save_sim_path)
+    #     for num_idx in num_idx_list:
+    #         save_sim_path = "/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/test/" + dir_name + f"/cases/gmm/{num_idx}_2/{num_steps}steps/"
+    #         if not os.path.exists(save_sim_path):
+    #             os.makedirs(save_sim_path)
 
-            file_path = f"/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/{num_idx}.pkl"
+    #         file_path = f"/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/test/baseline_1_t2/1/{num_idx}.pkl"
 
-            data = pickle.load(open(file_path, 'rb'))
-            tb = data['states_all']
-            # print(len(tb))
-            num_counted = 0
-            coll_num = 0
+    #         data = pickle.load(open(file_path, 'rb'))
+    #         tb = data['states_all']
+    #         # print(len(tb))
+    #         num_counted = 0
+    #         coll_num = 0
 
-            for idx in range(1000):
-                #print(f"----------------{idx}----------------")
-                coll = simulation_inference_model.check_crash_distribute(max_time=300, result_dir=save_sim_path, num_idx=num_idx, num_try=idx, num_steps=num_steps,if_all=True, initial_TIME_BUFF=tb)
+    #         for idx in range(1000):
+    #             #print(f"----------------{idx}----------------")
+    #             coll = simulation_inference_model.check_crash_distribute(max_time=300, result_dir=save_sim_path, num_idx=num_idx, num_try=idx, num_steps=num_steps,if_all=True, initial_TIME_BUFF=tb)
                 
-                if coll == 1:
-                    num_counted += 1
-                    coll_num += 1
-                elif coll == 0:
-                    num_counted += 1
+    #             if coll == 1:
+    #                 num_counted += 1
+    #                 coll_num += 1
+    #             elif coll == 0:
+    #                 num_counted += 1
 
-                if num_counted >= 100:
-                    coll_rate_dir[f'{num_idx}'].append([coll_num, num_counted])
-                    print(num_steps, num_idx, coll_num, num_counted)
-                    break
+    #             if num_counted >= 100:
+    #                 coll_rate_dir[f'{num_idx}'].append([coll_num, num_counted])
+    #                 print(num_steps, num_idx, coll_num, num_counted)
+    #                 break
 
-                if idx > 998:
-                    coll_rate_dir[f'{num_idx}'].append([coll_num, num_counted])
-                    print(num_steps, num_idx, coll_num, num_counted)
-                    break
+    #             if idx > 998:
+    #                 coll_rate_dir[f'{num_idx}'].append([coll_num, num_counted])
+    #                 print(num_steps, num_idx, coll_num, num_counted)
+    #                 break
 
-    with open('zzz_coll_curve_2_1.pkl', 'wb') as f1:
-        pickle.dump(coll_rate_dir, f1)
+    # with open('zzz_coll_curve_2_1.pkl', 'wb') as f1:
+    #     pickle.dump(coll_rate_dir, f1)
 
 
             # if coll_num <= 6:

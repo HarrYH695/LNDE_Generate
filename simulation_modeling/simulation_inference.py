@@ -818,7 +818,7 @@ class SimulationInference(object):
             if x > low and x < high:
                 return round(x)
 
-    def generate_prob_ignore_results(self, save_path_all, save_path_single, save_idx, max_time=400, ignore_rate=0.9, lambda_exp = 2, initial_TIME_BUFF=None):
+    def generate_prob_ignore_results(self, save_path_all, save_path_single, save_idx, max_time=300, ignore_rate=0.7, lambda_exp = 2, initial_TIME_BUFF=None):
         TIME_BUFF, traj_pool = self.initialize_sim(initial_TIME_BUFF=initial_TIME_BUFF)
         
         car_id_by_time = []
@@ -835,7 +835,7 @@ class SimulationInference(object):
                 if p_ignore:
                     cars_to_ignore.append(car_id)
 
-            if len(cars_to_ignore) > 0.7 * len(car_id_by_time[-1]):
+            if len(cars_to_ignore) >= 0.4 * len(car_id_by_time[-1]):
                 break
 
         # 对于每一个被选中的车，它们都看不见任何其他车
@@ -932,7 +932,7 @@ class SimulationInference(object):
                         if p_ignore:
                             cars_new_to_ignore.append(car_id)
 
-                    if len(cars_new_to_ignore) > 0.5 * len(cars_new):
+                    if len(cars_new_to_ignore) > 0.3 * len(cars_new):
                         break
                     
                 for car_id in cars_new_to_ignore:
