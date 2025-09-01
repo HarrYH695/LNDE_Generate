@@ -46,7 +46,7 @@ if __name__ == '__main__':
             print(exception)
 
     #set and save the random seed
-    seed = 0
+    seed = 42
     set_seed(seed)
 
     # Settings
@@ -76,12 +76,12 @@ if __name__ == '__main__':
     
     # same init, try to generate different results
 
-    dir_name = '/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0807/t6/1/'
+    dir_name = '/nfs/turbo/coe-mcity/hanhy/LNDE_inference_data/LNDE_ignore_0809/t6/1/'
 
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
-    for i in tqdm(range(30)):
+    for i in tqdm(range(50)):
         simulation_inference_model.check_from_same_startpoint(save_dir=dir_name, save_idx=i)
 
     

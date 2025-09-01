@@ -166,7 +166,7 @@ class TrafficSimulator_gmm(object):
         pred_pi = F.softmax(pi_all, dim=-1)
         # print(pred_pi)
         comp_idx = Categorical(pred_pi).sample()
-        pred_pi_one_hot = F.one_hot(comp_idx, num_classes=3).float()
+        pred_pi_one_hot = F.one_hot(comp_idx, num_classes=self.n_gaussian).float()
         # pred_pi_one_hot = F.one_hot(pred_pi, num_classes=3).float()
         pred_pi_final = pred_pi_one_hot.detach().cpu().numpy()
 

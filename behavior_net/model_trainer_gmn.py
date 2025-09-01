@@ -213,8 +213,8 @@ class Trainer_gmn(object):
         # update net_G states
         self.net_G.load_state_dict(checkpoint['model_G_state_dict'])
         self.optimizer_G.load_state_dict(checkpoint['optimizer_G_state_dict'])
-        self.exp_lr_scheduler_G.load_state_dict(
-            checkpoint['exp_lr_scheduler_G_state_dict'])
+        # self.exp_lr_scheduler_G.load_state_dict(
+        #     checkpoint['exp_lr_scheduler_G_state_dict'])
         self.net_G.to(device)
         
         self.epoch_to_start = checkpoint['epoch_id'] + 1
@@ -694,8 +694,8 @@ class Trainer_gmn(object):
                 gt_pos, mask_pos = self.gt[:, :, :int(self.output_dim / 2)], self.mask[:, :, :int(self.output_dim / 2)]
                 
                 mask_posi = (mask_pos.sum(dim=-1) == 2).float()
-
-                gt_pos_exp = gt_pos.unsqueeze(2).expand(-1, -1, 3, -1)
+                
+                gt_pos_exp = gt_pos.unsqueeze(2).expand(-1, -1, self.n_gaussian, -1)
                 mvn = torch.distributions.MultivariateNormal(loc=mu, scale_tril=L)
                 nll_all = -mvn.log_prob(gt_pos_exp)
 
@@ -706,7 +706,7 @@ class Trainer_gmn(object):
 
                 self.loss_nll = final_loss * 1e-5
 
-                one_hot_idx = F.one_hot(best_idx, num_classes=3).float()
+                one_hot_idx = F.one_hot(best_idx, num_classes=self.n_gaussian).float()
                 eps_sample = torch.zeros_like(mu)
                 posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
                 posi = (one_hot_idx.unsqueeze(-1) * posi).sum(dim=2)
@@ -745,13 +745,13 @@ class Trainer_gmn(object):
                 ignore_index = -100
                 labels_raw = best_idx.masked_fill(mask_posi == 0, ignore_index)
                 labels = labels_raw.view(-1)
-                logits = pi_all.view(-1, 3)
+                logits = pi_all.view(-1, self.n_gaussian)
 
                 self.loss_nll = F.cross_entropy(logits, labels, ignore_index=ignore_index)
 
                 eps_sample = torch.zeros_like(mu)
                 pred_idx = pi_all.argmax(dim=-1)
-                one_hot_idx = F.one_hot(pred_idx, num_classes=3).float()
+                one_hot_idx = F.one_hot(pred_idx, num_classes=self.n_gaussian).float()
 
                 posi = mu + (L @ eps_sample.unsqueeze(-1)).squeeze(-1)    
                 posi = (one_hot_idx.unsqueeze(-1) * posi).sum(dim=2)
@@ -1023,11 +1023,11 @@ class Trainer_gmn(object):
         self._load_checkpoint_from_single_gaussian(ckpt_path=self.single_ckpt_path)
         # self._load_checkpoint(start_id=34)
 
-        # self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0805/training/behavior_net/rounD_nG3_t4/checkpoints/ckpt_59.pt")
+        # self._load_certain_ckpt(ckpt_path="/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net/rounD_nG3_t2/checkpoints/ckpt_449.pt")
         
         self.total_batch_steps = self.total_steps * len(self.dataloaders['train'])
         self.warmup_batch_steps = int(self.total_batch_steps * 0.03)
-        print(self.total_batch_steps, self.warmup_batch_steps, self.global_step)
+        print(self.total_batch_steps, self.warmup_batch_steps, self.global_step, self.lr)
 
         self.exp_lr_scheduler_G = build_warmup_cosine_scheduler(self.optimizer_G, total_steps=self.total_batch_steps, warmup_steps=self.warmup_batch_steps, base_lr=self.lr, global_step=self.global_step)
 
@@ -1044,6 +1044,7 @@ class Trainer_gmn(object):
 
             for self.batch_id, batch in enumerate(self.dataloaders['train'], 0):
                 # print(1)
+
                 self._forward_pass(batch, rollout=1)
                 # print(2)
 
@@ -1105,8 +1106,8 @@ class Trainer_gmn(object):
             if (self.epoch_id + 1) <= 500:
                 if (self.epoch_id + 1) % 30 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
-            elif (self.epoch_id + 1) <= 650:
-                if (self.epoch_id + 1) % 5 == 0:
+            elif (self.epoch_id + 1) <= 800:
+                if (self.epoch_id + 1) % 40 == 0:
                     self._update_checkpoints(epoch_id=self.epoch_id)
             else:
                 if (self.epoch_id + 1) % 50 == 0:

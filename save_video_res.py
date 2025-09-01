@@ -133,8 +133,8 @@ if __name__ == '__main__':
     # dir_name = "rD_Trial_2"
     dir_wrong_data_info = "/nfs/turbo/coe-mcity/hanhy/LNDE_Results/" + dir_name + "/1/"
 
-    file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0807/t4/2/'
-    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0807/t4/2_vis/'
+    file_ori = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0809/t6/1/'
+    save_dir = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_inference_data/LNDE_ignore_0809/t6/1_vis/'
     scenes_all = os.listdir(file_ori)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)

@@ -270,30 +270,36 @@ def get_loaders(configs):
         training_set_origin = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["rollout_num"],
                                                       max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"])
 
-        training_set_ignore = MTLTrajectoryPredictionDataset_Ignore(path_to_traj_data_new_train=configs['path_to_traj_data_new_train'], path_to_traj_data_new_val=configs['path_to_traj_data_new_val'], history_length=configs["history_length"], pred_length=configs["rollout_num"],
-                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"])
+        # training_set_ignore = MTLTrajectoryPredictionDataset_Ignore(path_to_traj_data_new_train=configs['path_to_traj_data_new_train'], path_to_traj_data_new_val=configs['path_to_traj_data_new_val'], history_length=configs["history_length"], pred_length=configs["rollout_num"],
+        #                                          max_num_vehicles=configs["max_num_vehicles"], is_train=True, dataset=configs["dataset"])
 
         val_set_origin = MTLTrajectoryPredictionDataset(path_to_traj_data=configs["path_to_traj_data"], history_length=configs["history_length"], pred_length=configs["rollout_num"],
                                                  max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"])
 
-        val_set_ignore = MTLTrajectoryPredictionDataset_Ignore(path_to_traj_data_new_train=configs['path_to_traj_data_new_train'], path_to_traj_data_new_val=configs['path_to_traj_data_new_val'], history_length=configs["history_length"], pred_length=configs["rollout_num"],
-                                                 max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"])
+        # val_set_ignore = MTLTrajectoryPredictionDataset_Ignore(path_to_traj_data_new_train=configs['path_to_traj_data_new_train'], path_to_traj_data_new_val=configs['path_to_traj_data_new_val'], history_length=configs["history_length"], pred_length=configs["rollout_num"],
+        #                                          max_num_vehicles=configs["max_num_vehicles"], is_train=False, dataset=configs["dataset"])
 
     else:
         raise NotImplementedError(
             'Wrong dataset name %s (choose one from [AA_rdbt, rounD,...])'
             % configs.dataset)
 
-    concat_data_train = ConcatDataset([training_set_origin, training_set_ignore])
-    concat_data_val = ConcatDataset([val_set_origin, val_set_ignore])
-    # datasets = {'train': training_set, 'val': val_set}
-    # dataloaders = {x: DataLoader(datasets[x], batch_size=configs["batch_size"],
-    #                              shuffle=True, num_workers=configs["dataloader_num_workers"])
-    #                for x in ['train', 'val']}
 
     dataloaders = {}
-    dataloaders['train'] = DataLoader(concat_data_train, batch_size=configs["batch_size"], shuffle=True, num_workers=configs["dataloader_num_workers"], drop_last=True, pin_memory=True)
-    dataloaders['val'] = DataLoader(concat_data_val, batch_size=configs["batch_size"], shuffle=False, num_workers=configs["dataloader_num_workers"], drop_last=False, pin_memory=True)
+    dataloaders['train'] = DataLoader(training_set_origin, batch_size=configs["batch_size"], shuffle=True, num_workers=configs["dataloader_num_workers"], drop_last=True, pin_memory=True)
+    dataloaders['val'] = DataLoader(val_set_origin, batch_size=configs["batch_size"], shuffle=False, num_workers=configs["dataloader_num_workers"], drop_last=False, pin_memory=True)
+
+
+    # concat_data_train = ConcatDataset([training_set_origin, training_set_ignore])
+    # concat_data_val = ConcatDataset([val_set_origin, val_set_ignore])
+    # # datasets = {'train': training_set, 'val': val_set}
+    # # dataloaders = {x: DataLoader(datasets[x], batch_size=configs["batch_size"],
+    # #                              shuffle=True, num_workers=configs["dataloader_num_workers"])
+    # #                for x in ['train', 'val']}
+
+    # dataloaders = {}
+    # dataloaders['train'] = DataLoader(concat_data_train, batch_size=configs["batch_size"], shuffle=True, num_workers=configs["dataloader_num_workers"], drop_last=True, pin_memory=True)
+    # dataloaders['val'] = DataLoader(concat_data_val, batch_size=configs["batch_size"], shuffle=False, num_workers=configs["dataloader_num_workers"], drop_last=False, pin_memory=True)
 
 
     return dataloaders

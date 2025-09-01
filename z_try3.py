@@ -7,13 +7,29 @@ import matplotlib.pyplot as plt
 import cv2
 
 if __name__ == '__main__':
-    # dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0807/training/behavior_net/'
-    # pickle_path = dir_path + 'rounD_nG3_t4/vis_training/branch_num.pkl'
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net/'
+    pickle_path = dir_path + 'rounD_nG3_t1/vis_training/branch_num.pkl'
 
-    # with open(pickle_path, 'rb') as f1:
-    #     data = pickle.load(f1)
+    with open(pickle_path, 'rb') as f1:
+        data = pickle.load(f1)
 
-    # print(data)
+    print(data)
+
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net/'
+    pickle_path = dir_path + 'rounD_nG3_t3/vis_training/branch_num.pkl'
+
+    with open(pickle_path, 'rb') as f1:
+        data = pickle.load(f1)
+
+    print(data)
+
+    dir_path = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net/'
+    pickle_path = dir_path + 'rounD_nG3_t5/vis_training/branch_num.pkl'
+
+    with open(pickle_path, 'rb') as f1:
+        data = pickle.load(f1)
+
+    print(data)
 
     # dataset_file = '/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Data/data/training/behavior_net/rounD/rounD-filtered-VRUs-no-trailer-local-heading-size-36-18/train/'
     # sub_dir = os.listdir(dataset_file)
@@ -51,9 +67,9 @@ if __name__ == '__main__':
     # files = os.listdir(dir_path)
     # print(len(files))
 
-    dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/train/'
-    files = os.listdir(dir_path)
-    print(len(files))
+    # dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/train/'
+    # files = os.listdir(dir_path)
+    # print(len(files))
 
     # dir_path = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/train/'
     # files = os.listdir(dir_path)

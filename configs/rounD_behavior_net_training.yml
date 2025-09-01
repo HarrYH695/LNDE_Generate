@@ -4,11 +4,11 @@ path_to_traj_data: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/training/behavior_
 # path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730/train/"
 # path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730/val/"
 
-# path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/train/"
-# path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/val/"
+path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/train/"
+path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/val/"
 
-path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/train_part_p65/"
-path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/val/"
+# path_to_traj_data_new_train: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/train_part_p65/"
+# path_to_traj_data_new_val: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0805/val/"
 
 # Model settings
 model: transformer  # transformer or bn_mlp
@@ -16,19 +16,19 @@ history_length: 5  # number of historical steps input to the model
 pred_length: 1  # number of predicted steps output by the model
 rollout_num: 1
 max_num_vehicles: 32  # maximum number of vehicles that can be handled by the model
-n_gaussian: 2
+n_gaussian: 3
 single_ckpt_path: "/nfs/turbo/coe-mcity/hanhy/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_trial_2/checkpoints/ckpt_69.pt"
 
 # Training settings
 p: 0.4
 batch_size: 128
-lr: 2.0e-4 #5.0e-4 #5.0e-5  # learning rate
+lr: 1.0e-4 #5.0e-4 #5.0e-5  # learning rate
 lr_decay_step_size: 200  # The number of training epochs to conduct lr decay. lr_scheduler.StepLR is used.
 lr_decay_gamma: 0.4  # lr_scheduler.StepLR is used.
 warmup_steps: 50
-max_num_epochs: 1300  # maximum training epochs
-epoch_mu: 500
-epoch_std: 900
+max_num_epochs: 1050  # maximum training epochs
+epoch_mu: 450
+epoch_std: 750
 dataloader_num_workers: 8  # num_workers
 sample_times: 10  # sample times for generating x_input
 epoch_thres: 10000  # when to add L1 loss

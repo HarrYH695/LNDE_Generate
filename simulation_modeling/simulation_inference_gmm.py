@@ -1079,7 +1079,7 @@ class SimulationInference_gmm(object):
         return 0
             
         
-    def check_from_same_startpoint(self, save_dir='', save_idx=0, repeat_num=30, predict_time=100, initial_TIME_BUFF=None):
+    def check_from_same_startpoint(self, save_dir='', save_idx=0, repeat_num=40, predict_time=100, initial_TIME_BUFF=None):
         #sample from history traj, then simulate for a long time until get a crash.
         #allow new cars in, allow out of bound cars. Remember the time_idx for new cars and valid_mask.
         #if find proper samples, save the whole traj.

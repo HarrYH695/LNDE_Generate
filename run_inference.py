@@ -77,8 +77,8 @@ if __name__ == '__main__':
     save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_all_0730_4/val/'
     save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data_ignore_new_single_0730_4/val/'
 
-    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data//Data_Gen/data_ignore_new_all_0809/val/'
-    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0809/val/'
+    save_dir = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data//Data_Gen/data_ignore_new_all_0810/train/'
+    save_dir_single = '/nfs/turbo/coe-mcity/hanhy/LNDE_Data/Data_Gen/data_ignore_new_single_0810/train/'
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=t4
+#SBATCH --job-name=t7
 #SBATCH --account=mcity_project
 #SBATCH --partition=mcity_project-l40s
 #SBATCH --time=2-00:00:00 
@@ -16,4 +16,4 @@
 source /sw/pkgs/arc/python3.10-anaconda/2023.03/etc/profile.d/conda.sh
 conda activate NNDE1
 cd /home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/
-srun --cpu-bind=cores python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_t4
+srun --cpu-bind=cores python run_training_gmn.py --config ./configs/rounD_behavior_net_training.yml --experiment-name rounD_nG3_t7

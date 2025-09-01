@@ -31,8 +31,10 @@ sample_times: 5
 # behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0726_2/training/behavior_net/rounD_nG3_trial_2_4/checkpoints/ckpt_1399.pt"
 # behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0730/training/behavior_net/rounD_nG3_trial_2/checkpoints/ckpt_899.pt"
 # behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0807/training/behavior_net/rounD_nG3_t4/checkpoints/ckpt_1299.pt"
-behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_trial_2/checkpoints/ckpt_69.pt"
+# behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_trial_2/checkpoints/ckpt_69.pt"
 # behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0807/training/behavior_net/rounD_nG3_t6/checkpoints/ckpt_1299.pt"
+# behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net/rounD_nG3_t3/checkpoints/ckpt_1299.pt"
+behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results_gmn_ignore_0809/training/behavior_net/rounD_nG3_t6/checkpoints/ckpt_1049.pt"
 
 # behavior_model_ckpt_dir: "/home/hanhy/ondemand/data/sys/myjobs/LNDE_Generate/LNDE_Training_Res/results/training/behavior_net/rounD_predlen_1_baseline_1/checkpoints/ckpt_299.pt"
 safety_mapper_ckpt_dir: "/nfs/turbo/coe-mcity/hanhy/LNDE_Data/data/inference/rounD/safety_mapper_ckpt/safety_mapping_net.pt"
